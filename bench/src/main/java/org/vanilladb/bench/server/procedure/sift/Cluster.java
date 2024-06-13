@@ -210,7 +210,7 @@ public class Cluster {
                 new CustomPairComparator());
         List<Future<CustomPair<Double, Integer>>> futures = new ArrayList<>();
         for (int j = 0; j < numOfCluster; j++) {
-            final int finalJ = j;
+            int finalJ = j;
             Future<CustomPair<Double, Integer>> future = executor.submit(() -> {
                 VectorConstant tempConstant = new VectorConstant(centroids.get(finalJ));
                 double temp_dis = distFn.distance(tempConstant);
@@ -218,7 +218,6 @@ public class Cluster {
             });
             futures.add(future);
         }
-
         for (Future<CustomPair<Double, Integer>> future : futures) {
             try {
                 CustomPair<Double, Integer> pair = future.get();
