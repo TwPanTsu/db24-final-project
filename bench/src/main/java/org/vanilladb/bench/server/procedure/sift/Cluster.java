@@ -78,7 +78,7 @@ public class Cluster {
                 break;
         }
         // debugging
-        debugMsgOfAllCentroids();
+        // debugMsgOfAllCentroids();
     }
 
     // constructor for benchmark which just need centroids value and func in this
@@ -121,7 +121,8 @@ public class Cluster {
             for (int j = 0; j < numOfCluster; j++) {
                 IntegerConstant samplesInCluster = new IntegerConstant(dataCluster.get(j).size());
                 // System.out.println("samples num in cluster" + j + " = " + samplesInCluster);
-                if ((Integer) samplesInCluster.asJavaVal() == 0) continue;
+                if ((Integer) samplesInCluster.asJavaVal() == 0)
+                    continue;
                 VectorConstant newCentroid = VectorConstant.zeros(SiftBenchConstants.NUM_DIMENSION);
                 for (int n = 0; n < (Integer) samplesInCluster.asJavaVal(); n++) {
                     newCentroid = (VectorConstant) newCentroid.add(dataCluster.get(j).get(n).div(samplesInCluster));
@@ -172,18 +173,21 @@ public class Cluster {
     }
 
     public ArrayList<Integer> getTopKNearestCentroidId(VectorConstant vc, int k) {
-        if (k > numOfCluster) {
-            k = numOfCluster;
-        }
+        // if (k > numOfCluster) {
+        //     k = numOfCluster;
+        // }
         distFn.setQueryVector(vc);
 
         // use priority queue to get top k nearest centroid
         // maintain a priority queue storing a group of smallest distance
         // O(nlogk) method, maybe can be improved to O(n) method (QuickSelect)
         // If k is small, this method is good enough
-        // Comparator<CustomPair<Double, Integer>> comparator = Comparator.comparing(CustomPair::getFirst);
-        // PriorityQueue<CustomPair<Double, Integer>> pq = new PriorityQueue<>(comparator);
-        PriorityQueue<CustomPair<Double, Integer>> pq = new PriorityQueue<CustomPair<Double, Integer>>(k, new CustomPairComparator());
+        // Comparator<CustomPair<Double, Integer>> comparator =
+        // Comparator.comparing(CustomPair::getFirst);
+        // PriorityQueue<CustomPair<Double, Integer>> pq = new
+        // PriorityQueue<>(comparator);
+        PriorityQueue<CustomPair<Double, Integer>> pq = new PriorityQueue<CustomPair<Double, Integer>>(k,
+                new CustomPairComparator());
         for (int j = 0; j < numOfCluster; j++) {
             VectorConstant tempConstant = new VectorConstant(centroids.get(j));
             double temp_dis = distFn.distance(tempConstant);
@@ -193,10 +197,13 @@ public class Cluster {
             }
         }
 
-        ArrayList<Integer> result = new ArrayList<>();
-        while (!pq.isEmpty()) {
-            result.add(pq.poll().getSecond());
-        }
+        // ArrayList<Integer> result = new ArrayList<>();
+        // while (!pq.isEmpty()) {
+        // result.add(pq.poll().getSecond());
+        // }
+        // Optimized version
+        ArrayList<Integer> result = pq.stream().map(CustomPair::getSecond).collect(ArrayList::new, ArrayList::add,
+                ArrayList::addAll);
         return result;
     }
 

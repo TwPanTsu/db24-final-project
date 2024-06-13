@@ -114,7 +114,11 @@ public class SiftBenchProc extends StoredProcedure<SiftBenchParamHelper> {
             // System.out.println("nearestCentroidId = " + nearestCentroidIDs.get(i));
             // }
 
-            ArrayList<CustomPair<Integer, VectorConstant>> candidates = new ArrayList<CustomPair<Integer, VectorConstant>>();
+            // ArrayList<CustomPair<Integer, VectorConstant>> candidates = new
+            // ArrayList<CustomPair<Integer, VectorConstant>>();
+            // Optimized version
+            PriorityQueue<CustomPair<Double, Integer>> pq = new PriorityQueue<CustomPair<Double, Integer>>(
+                    paramHelper.getK(), new CustomPairComparator());
             for (int i = 0; i < topKNC; i++) {
                 nnQuery = "SELECT i_id, i_emb FROM cluster_" + nearestCentroidIDs.get(i).toString() + " ORDER BY "
                         + paramHelper.getEmbeddingField() + " <EUC> " + query.toString() + " LIMIT "
@@ -126,45 +130,62 @@ public class SiftBenchProc extends StoredProcedure<SiftBenchParamHelper> {
 
                 nearestNeighborScan.beforeFirst();
                 while (nearestNeighborScan.next()) {
-                    candidates.add(new CustomPair<Integer, VectorConstant>(
+                    // candidates.add(new CustomPair<Integer, VectorConstant>(
+                    // (Integer) nearestNeighborScan.getVal("i_id").asJavaVal(),
+                    // (VectorConstant) nearestNeighborScan.getVal("i_emb")));
+                    CustomPair<Integer, VectorConstant> candidate = new CustomPair<Integer, VectorConstant>(
                             (Integer) nearestNeighborScan.getVal("i_id").asJavaVal(),
-                            (VectorConstant) nearestNeighborScan.getVal("i_emb")));
+                            (VectorConstant) nearestNeighborScan.getVal("i_emb"));
+                    pq.add(new CustomPair<Double, Integer>(distFn.distance(candidate.getSecond()),
+                            candidate.getFirst()));
+                    if (pq.size() > paramHelper.getK()) {
+                        pq.poll();
+                    }
                 }
                 nearestNeighborScan.close();
             }
 
             // debug
-            logger.info("candidates: ");
-            for (CustomPair<Integer, VectorConstant> candidate: candidates) {
-                logger.info(candidate.toString());
-            }
+            // logger.info("candidates: ");
+            // for (CustomPair<Integer, VectorConstant> candidate: candidates) {
+            // logger.info(candidate.toString());
+            // }
 
-            // Comparator<CustomPair<Double, Integer>> comparator = Comparator.comparing(CustomPair::getFirst);
-            // PriorityQueue<CustomPair<Double, Integer>> pq = new PriorityQueue<>(comparator);
-            PriorityQueue<CustomPair<Double, Integer>> pq = new PriorityQueue<CustomPair<Double, Integer>>(paramHelper.getK(), new CustomPairComparator());
-            for (CustomPair<Integer, VectorConstant> candidate : candidates) {
-                pq.add(new CustomPair<Double, Integer>(distFn.distance(candidate.getSecond()), candidate.getFirst()));
-                if (pq.size() > paramHelper.getK()) {
-                    pq.poll();
-                }
-            }
-
-            // debug
-            logger.info("pq:");
-            logger.info(((Integer)pq.size()).toString());
-
-            Set<Integer> nearestNeighbors = new HashSet<>();
-            while (!pq.isEmpty()) {
-                nearestNeighbors.add(pq.poll().getSecond());
-            }
+            // Comparator<CustomPair<Double, Integer>> comparator =
+            // Comparator.comparing(CustomPair::getFirst);
+            // PriorityQueue<CustomPair<Double, Integer>> pq = new
+            // PriorityQueue<>(comparator);
+            // PriorityQueue<CustomPair<Double, Integer>> pq = new
+            // PriorityQueue<CustomPair<Double, Integer>>(paramHelper.getK(), new
+            // CustomPairComparator());
+            // for (CustomPair<Integer, VectorConstant> candidate : candidates) {
+            // pq.add(new CustomPair<Double,
+            // Integer>(distFn.distance(candidate.getSecond()), candidate.getFirst()));
+            // if (pq.size() > paramHelper.getK()) {
+            // pq.poll();
+            // }
+            // }
 
             // debug
-            logger.info("set:");
-            logger.info(((Integer)nearestNeighbors.size()).toString());
+            // logger.info("pq:");
+            // logger.info(((Integer)pq.size()).toString());
+
+            // Set<Integer> nearestNeighbors = new HashSet<>();
+            // while (!pq.isEmpty()) {
+            // nearestNeighbors.add(pq.poll().getSecond());
+            // }
+
+            // Optimized version
+            Set<Integer> nearestNeighbors = pq.stream().map(CustomPair::getSecond).collect(HashSet::new, HashSet::add,
+                    HashSet::addAll);
+
+            // debug
+            // logger.info("set:");
+            // logger.info(((Integer)nearestNeighbors.size()).toString());
 
             // debug nearestNeighbors
             // for (Integer i : nearestNeighbors) {
-            //     logger.info(i.toString());
+            // logger.info(i.toString());
             // }
             paramHelper.setNearestNeighbors(nearestNeighbors);
         }
