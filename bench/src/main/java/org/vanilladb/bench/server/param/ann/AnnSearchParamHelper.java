@@ -26,6 +26,9 @@ public class AnnSearchParamHelper implements StoredProcedureHelper {
         }
         query = new VectorConstant(rawVector);
         items = new Integer[numNeighbors];
+        // Prevent null error
+        for (int i = 0; i < numNeighbors; i++)
+            items[i] = 0;
     }
 
     @Override
