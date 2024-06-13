@@ -31,7 +31,7 @@ public class SiftBenchProc extends StoredProcedure<SiftBenchParamHelper> {
         NEAREST_CENTROID, TOP_K_NEAREST_CENTROID, TKNC_CONCURRENT
     }
 
-    private Strategy strategy = Strategy.TOP_K_NEAREST_CENTROID;
+    private Strategy strategy = Strategy.TKNC_CONCURRENT;
 
     public SiftBenchProc() {
         super(new SiftBenchParamHelper());
@@ -137,9 +137,12 @@ public class SiftBenchProc extends StoredProcedure<SiftBenchParamHelper> {
         /************************************************************************ */
         else {
             // ArrayList<Integer> nearestCentroidIDs = cluster.getTopKNearestCentroidId(query, topKNC);
-            ArrayList<Integer> nearestCentroidIDs = cluster.getTopKNearestCentroidIdConcurrently(query, topKNC);
+            ArrayList<Integer> nearestCentroidIDs =
+            cluster.getTopKNearestCentroidIdConcurrently(query, topKNC);
             PriorityQueue<CustomPair<Double, Integer>> pq = new PriorityQueue<CustomPair<Double, Integer>>(
                     paramHelper.getK(), new CustomPairComparator());
+            List<Future<List<CustomPair<Double, Integer>>>> futures = new ArrayList<>();
+            ExecutorService executor = Executors.newFixedThreadPool(topKNC * paramHelper.getK());
             for (int i = 0; i < topKNC; i++) {
                 nnQuery = "SELECT i_id, i_emb FROM cluster_" + nearestCentroidIDs.get(i).toString() + " ORDER BY "
                         + paramHelper.getEmbeddingField() + " <EUC> " + query.toString() + " LIMIT "
@@ -147,18 +150,54 @@ public class SiftBenchProc extends StoredProcedure<SiftBenchParamHelper> {
 
                 Scan nearestNeighborScan = StoredProcedureUtils.executeQuery(nnQuery, tx);
 
-                nearestNeighborScan.beforeFirst();
-                while (nearestNeighborScan.next()) {
-                    CustomPair<Integer, VectorConstant> candidate = new CustomPair<Integer, VectorConstant>(
-                            (Integer) nearestNeighborScan.getVal("i_id").asJavaVal(),
-                            (VectorConstant) nearestNeighborScan.getVal("i_emb"));
-                    pq.add(new CustomPair<Double, Integer>(distFn.distance(candidate.getSecond()),
-                            candidate.getFirst()));
-                    if (pq.size() > paramHelper.getK()) {
-                        pq.poll();
+                Callable<List<CustomPair<Double, Integer>>> task = new Callable<List<CustomPair<Double, Integer>>>() {
+                    @Override
+                    public List<CustomPair<Double, Integer>> call() throws Exception {
+                        List<CustomPair<Double, Integer>> res = new ArrayList<>();
+                        nearestNeighborScan.beforeFirst();
+                        while (nearestNeighborScan.next()) {
+                            CustomPair<Integer, VectorConstant> candidate = new CustomPair<Integer, VectorConstant>(
+                                    (Integer) nearestNeighborScan.getVal("i_id").asJavaVal(),
+                                    (VectorConstant) nearestNeighborScan.getVal("i_emb"));
+                            res.add(new CustomPair<Double, Integer>(distFn.distance(candidate.getSecond()),
+                                    candidate.getFirst()));
+                        }
+                        return res;
+                    }
+                };
+                futures.add(executor.submit(task));
+
+                // nearestNeighborScan.beforeFirst();
+                // while (nearestNeighborScan.next()) {
+                // CustomPair<Integer, VectorConstant> candidate = new CustomPair<Integer,
+                // VectorConstant>(
+                // (Integer) nearestNeighborScan.getVal("i_id").asJavaVal(),
+                // (VectorConstant) nearestNeighborScan.getVal("i_emb"));
+                // Callable<CustomPair<Double, Integer>> task = new Callable<CustomPair<Double,
+                // Integer>>() {
+                // @Override
+                // public CustomPair<Double, Integer> call() throws Exception {
+                // return new CustomPair<Double,
+                // Integer>(distFn.distance(candidate.getSecond()),
+                // candidate.getFirst());
+                // }
+                // };
+                // futures.add(executor.submit(task));
+                // }
+            }
+            executor.shutdown();
+            try {
+                for (Future<List<CustomPair<Double, Integer>>> future : futures) {
+                    List<CustomPair<Double, Integer>> res = future.get();
+                    for (CustomPair<Double, Integer> pair : res) {
+                        pq.add(pair);
+                        if (pq.size() > paramHelper.getK()) {
+                            pq.poll();
+                        }
                     }
                 }
-                nearestNeighborScan.close();
+            } catch (InterruptedException | ExecutionException e) {
+                e.printStackTrace();
             }
 
             Set<Integer> nearestNeighbors = pq.stream().map(CustomPair::getSecond).collect(HashSet::new, HashSet::add,
