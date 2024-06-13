@@ -1,11 +1,11 @@
 package org.vanilladb.bench.server.procedure.sift;
 
+import java.util.List;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashSet;
 import java.util.PriorityQueue;
 import java.util.Set;
-import java.util.logging.Logger;
+import java.util.concurrent.*;
 
 import org.vanilladb.bench.server.param.sift.SiftBenchParamHelper;
 import org.vanilladb.bench.server.procedure.StoredProcedureUtils;
@@ -19,7 +19,6 @@ import org.vanilladb.core.sql.storedprocedure.StoredProcedure;
 import org.vanilladb.core.storage.tx.Transaction;
 
 public class SiftBenchProc extends StoredProcedure<SiftBenchParamHelper> {
-    private static Logger logger = Logger.getLogger(SiftBenchProc.class.getName());
     // add cluster here
     private static Cluster cluster;
     private static boolean haveCluster = false;
@@ -29,10 +28,10 @@ public class SiftBenchProc extends StoredProcedure<SiftBenchParamHelper> {
     private DistanceFn distFn = new EuclideanFn("i_emb");
 
     private enum Strategy {
-        NEAREST_CENTROID, TOP_K_NEAREST_CENTROID
+        NEAREST_CENTROID, TOP_K_NEAREST_CENTROID, TKNC_CONCURRENT
     }
 
-    private Strategy strategy = Strategy.TOP_K_NEAREST_CENTROID;
+    private Strategy strategy = Strategy.TKNC_CONCURRENT;
 
     public SiftBenchProc() {
         super(new SiftBenchParamHelper());
@@ -104,10 +103,12 @@ public class SiftBenchProc extends StoredProcedure<SiftBenchParamHelper> {
                 throw new RuntimeException("Nearest neighbor query execution failed for " + query.toString());
             paramHelper.setNearestNeighbors(nearestNeighbors);
 
-        } else {
+        } else if (strategy == Strategy.TOP_K_NEAREST_CENTROID) {
             // strategy 2: find top-k nearest centroids, then find nearest neighbor from
             // each cluster
             ArrayList<Integer> nearestCentroidIDs = cluster.getTopKNearestCentroidId(query, topKNC);
+            // ArrayList<Integer> nearestCentroidIDs =
+            // cluster.getTopKNearestCentroidIdConcurrently(query, topKNC);
 
             // debug
             // for (int i = 0; i < topKNC; i++) {
@@ -190,7 +191,55 @@ public class SiftBenchProc extends StoredProcedure<SiftBenchParamHelper> {
             paramHelper.setNearestNeighbors(nearestNeighbors);
         }
         /************************************************************************ */
+        else {
+            // strategy 3: find top-k nearest centroids concurrently, then find nearest
+            ArrayList<Integer> nearestCentroidIDs = cluster.getTopKNearestCentroidId(query, topKNC);
+            ExecutorService executor = Executors.newFixedThreadPool(topKNC);
 
+            PriorityQueue<CustomPair<Double, Integer>> pq = new PriorityQueue<CustomPair<Double, Integer>>(
+                    paramHelper.getK(), new CustomPairComparator());
+            List<Future<Void>> futures = new ArrayList<Future<Void>>();
+
+            for (int i = 0; i < topKNC; i++) {
+                final int idx = i;
+                futures.add(executor.submit(() -> {
+                    String curQuery = "SELECT i_id, i_emb FROM cluster_" + nearestCentroidIDs.get(idx).toString()
+                            + " ORDER BY "
+                            + paramHelper.getEmbeddingField() + " <EUC> " + query.toString() + " LIMIT "
+                            + paramHelper.getK();
+
+                    Scan nearestNeighborScan = StoredProcedureUtils.executeQuery(curQuery, tx);
+                    nearestNeighborScan.beforeFirst();
+                    while (nearestNeighborScan.next()) {
+                        CustomPair<Integer, VectorConstant> candidate = new CustomPair<>(
+                                (Integer) nearestNeighborScan.getVal("i_id").asJavaVal(),
+                                (VectorConstant) nearestNeighborScan.getVal("i_emb"));
+                        double distance = distFn.distance(candidate.getSecond());
+                        synchronized (pq) {
+                            pq.add(new CustomPair<>(distance, candidate.getFirst()));
+                            if (pq.size() > paramHelper.getK()) {
+                                pq.poll();
+                            }
+                        }
+                    }
+                    nearestNeighborScan.close();
+                    return null;
+                }));
+            }
+
+            for (Future<Void> future : futures) {
+                try {
+                    future.get();
+                } catch (InterruptedException | ExecutionException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            executor.shutdown();
+            Set<Integer> nearestNeighbors = pq.stream().map(CustomPair::getSecond).collect(HashSet::new, HashSet::add,
+                    HashSet::addAll);
+            paramHelper.setNearestNeighbors(nearestNeighbors);
+        }
     }
 
 }

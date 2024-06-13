@@ -4,9 +4,9 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.Random;
-
+import java.util.concurrent.*;
+import java.util.List;
 import java.util.PriorityQueue;
 
 import org.vanilladb.bench.benchmarks.sift.SiftBenchConstants;
@@ -173,11 +173,7 @@ public class Cluster {
     }
 
     public ArrayList<Integer> getTopKNearestCentroidId(VectorConstant vc, int k) {
-        // if (k > numOfCluster) {
-        //     k = numOfCluster;
-        // }
         distFn.setQueryVector(vc);
-
         // use priority queue to get top k nearest centroid
         // maintain a priority queue storing a group of smallest distance
         // O(nlogk) method, maybe can be improved to O(n) method (QuickSelect)
@@ -202,6 +198,40 @@ public class Cluster {
         // result.add(pq.poll().getSecond());
         // }
         // Optimized version
+        ArrayList<Integer> result = pq.stream().map(CustomPair::getSecond).collect(ArrayList::new, ArrayList::add,
+                ArrayList::addAll);
+        return result;
+    }
+
+    public ArrayList<Integer> getTopKNearestCentroidIdConcurrently(VectorConstant vc, int k) {
+        distFn.setQueryVector(vc);
+        ExecutorService executor = Executors.newFixedThreadPool(numOfCluster);
+        PriorityQueue<CustomPair<Double, Integer>> pq = new PriorityQueue<CustomPair<Double, Integer>>(k,
+                new CustomPairComparator());
+        List<Future<CustomPair<Double, Integer>>> futures = new ArrayList<>();
+        for (int j = 0; j < numOfCluster; j++) {
+            final int finalJ = j;
+            Future<CustomPair<Double, Integer>> future = executor.submit(() -> {
+                VectorConstant tempConstant = new VectorConstant(centroids.get(finalJ));
+                double temp_dis = distFn.distance(tempConstant);
+                return new CustomPair<Double, Integer>(temp_dis, finalJ);
+            });
+            futures.add(future);
+        }
+
+        for (Future<CustomPair<Double, Integer>> future : futures) {
+            try {
+                CustomPair<Double, Integer> pair = future.get();
+                pq.add(pair);
+                if (pq.size() > k) {
+                    pq.poll();
+                }
+            } catch (InterruptedException | ExecutionException e) {
+                e.printStackTrace();
+            }
+        }
+
+        executor.shutdown();
         ArrayList<Integer> result = pq.stream().map(CustomPair::getSecond).collect(ArrayList::new, ArrayList::add,
                 ArrayList::addAll);
         return result;
