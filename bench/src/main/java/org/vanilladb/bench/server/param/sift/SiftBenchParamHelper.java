@@ -20,6 +20,8 @@ public class SiftBenchParamHelper implements StoredProcedureHelper {
 
     private int insertCount = 0;
     private ArrayList<Object[]> insertHistory  = new ArrayList<>();
+    //our new data type
+    private final String centroidTable = "centroids";
 
     @Override
     public void prepareParameters(Object... pars) {
@@ -91,6 +93,10 @@ public class SiftBenchParamHelper implements StoredProcedureHelper {
         return numNeighbors;
     }
 
+    public String getCentroidTableName() {
+        return centroidTable;
+    }
+    
     public int getInsertCount(){
         return insertCount;
     }
