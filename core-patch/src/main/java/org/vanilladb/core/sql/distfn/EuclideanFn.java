@@ -8,6 +8,11 @@ public class EuclideanFn extends DistanceFn {
         super(fld);
     }
 
+    public EuclideanFn(VectorConstant query) {
+        super("");
+        this.query = query;
+    }
+
     @Override
     protected double calculateDistance(VectorConstant vec) {
         double sum = 0;
