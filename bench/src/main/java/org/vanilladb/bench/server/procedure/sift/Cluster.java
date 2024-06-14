@@ -24,61 +24,153 @@ public class Cluster {
     // clustering
     ArrayList<float[]> centroids = new ArrayList<float[]>();
     ArrayList<VectorConstant> sampledData = new ArrayList<VectorConstant>();
+    ArrayList<VectorConstant> tempSampledData = new ArrayList<VectorConstant>();
     Random R = new Random();
     DistanceFn distFn = new EuclideanFn("i_emb");
+
+    // dimension reduction parameter~!
+    boolean DIM_REDUCTION = false;
+    int N_DIM = (DIM_REDUCTION) ? 64 : 128;
+
+    // new data needed for normalization // all have 128 instances
+    VectorConstant meanOfAllDIM;
+    VectorConstant standOfAllDIM; // for standard diveation
+
+    public boolean getDimReduction(){
+        return DIM_REDUCTION;
+    }
+    public int getNDim(){
+        return N_DIM;
+    }
 
     public Cluster(int numOfCluster) {
         this.numOfCluster = numOfCluster;
 
-        // collect sample data
-        // and set number of data to take into account
-        numOfSample = 0;// to calculate the total num of sample
-        try (BufferedReader br = new BufferedReader(new FileReader(SiftBenchConstants.DATASET_FILE))) {
-            int id = 0;
-            String vectorString;
-            while (id < SiftBenchConstants.NUM_ITEMS && (vectorString = br.readLine()) != null) {
-                // make sure we don't read data out of bound
-                id++;
+        if (DIM_REDUCTION){
+            // collect sample data and set number of data to take into account
+            numOfSample = 0;// to calculate the total num of sample
+            try (BufferedReader br = new BufferedReader(new FileReader(SiftBenchConstants.DATASET_FILE))) {
+                int id = 0;
+                String vectorString;
+                while (id < SiftBenchConstants.NUM_ITEMS && (vectorString = br.readLine()) != null) {
+                    // make sure we don't read data out of bound
+                    id++;
 
-                // do select here (chance = 1/20)
-                if (R.nextInt(20) != 0)
+                    // do select here (chance = 1/20)
+                    if (R.nextInt(20) != 0)
+                        continue;
+
+                    // parse the vectorstring to float array here
+                    float[] float_nums = stringToVector(vectorString);
+
+                    // store the vector to vector Constant
+                    VectorConstant vc = new VectorConstant(float_nums);
+                    // add the vector to sample data
+                    tempSampledData.add(vc);
+                    numOfSample++;
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            System.out.println("samples num = " + numOfSample);
+
+            //Do dimension reduction here
+            // calculate mean of all dimension by all the sample
+            meanOfAllDIM = VectorConstant.zeros(SiftBenchConstants.NUM_DIMENSION);
+            IntegerConstant numOfSampleConstant = new IntegerConstant(numOfSample); // for div
+            for (int i=0;i<numOfSample;i++){
+                meanOfAllDIM = (VectorConstant)meanOfAllDIM.add(tempSampledData.get(i).div(numOfSampleConstant));
+            }
+            // calculate standard diveation of all dimension by all the sample
+            standOfAllDIM = VectorConstant.zeros(SiftBenchConstants.NUM_DIMENSION);
+            for (int i=0;i<numOfSample;i++){
+                standOfAllDIM = (VectorConstant)standOfAllDIM.add(tempSampledData.get(i).mul(tempSampledData.get(i)).div(numOfSampleConstant));
+            }
+            standOfAllDIM = (VectorConstant)standOfAllDIM.sqrt();
+
+            // normalize all sample 
+            for (int i=0;i<numOfSample;i++){ // need a lot type casting ...
+                tempSampledData.set(i, (VectorConstant)((VectorConstant) tempSampledData.get(i).sub(meanOfAllDIM)).elementDiv(standOfAllDIM));
+            }
+
+            // reduction
+            for (int i=0;i<numOfSample;i++){ 
+                // to just 64 dim
+                sampledData.add(reduceDim(tempSampledData.get(i), SiftBenchConstants.NUM_DIMENSION));
+            }
+
+            // random select centroid from sample arraylist
+            ArrayList<Integer> centroid_idx = new ArrayList<Integer>();
+            int counter = 0;
+            while (true) {
+                // select a new index again if the index have been select
+                int random_idx = R.nextInt(numOfSample);
+                if (centroid_idx.contains(random_idx))
                     continue;
 
-                // parse the vectorstring to float array here
-                float[] float_nums = stringToVector(vectorString);
+                // store the idx
+                centroid_idx.add(random_idx);
 
-                // store the vector to vector Constant
-                VectorConstant vc = new VectorConstant(float_nums);
-                // add the vector to sample data
-                sampledData.add(vc);
-                numOfSample++;
+                // add to centroid list
+                centroids.add(sampledData.get(random_idx).copy());
+                counter++;
+                if (counter == numOfCluster)
+                    break;
             }
-        } catch (IOException e) {
-            e.printStackTrace();
+            // debugging
+            // debugMsgOfAllCentroids();
+        } else {
+            // collect sample data and set number of data to take into account
+            numOfSample = 0;// to calculate the total num of sample
+            try (BufferedReader br = new BufferedReader(new FileReader(SiftBenchConstants.DATASET_FILE))) {
+                int id = 0;
+                String vectorString;
+                while (id < SiftBenchConstants.NUM_ITEMS && (vectorString = br.readLine()) != null) {
+                    // make sure we don't read data out of bound
+                    id++;
+
+                    // do select here (chance = 1/20)
+                    if (R.nextInt(20) != 0)
+                        continue;
+
+                    // parse the vectorstring to float array here
+                    float[] float_nums = stringToVector(vectorString);
+
+                    // store the vector to vector Constant
+                    VectorConstant vc = new VectorConstant(float_nums);
+                    // add the vector to sample data
+                    sampledData.add(vc);
+                    numOfSample++;
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            System.out.println("samples num = " + numOfSample);
+
+            // random select centroid from sample arraylist
+            ArrayList<Integer> centroid_idx = new ArrayList<Integer>();
+            int counter = 0;
+            while (true) {
+                // select a new index again if the index have been select
+                int random_idx = R.nextInt(numOfSample);
+                if (centroid_idx.contains(random_idx))
+                    continue;
+
+                // store the idx
+                centroid_idx.add(random_idx);
+
+                // add to centroid list
+                centroids.add(sampledData.get(random_idx).copy());
+                counter++;
+                if (counter == numOfCluster)
+                    break;
+            }
+            // debugging
+            // debugMsgOfAllCentroids();
         }
-
-        System.out.println("samples num = " + numOfSample);
-
-        // random select centroid from sample arraylist
-        ArrayList<Integer> centroid_idx = new ArrayList<Integer>();
-        int counter = 0;
-        while (true) {
-            // select a new index again if the index have been select
-            int random_idx = R.nextInt(numOfSample);
-            if (centroid_idx.contains(random_idx))
-                continue;
-
-            // store the idx
-            centroid_idx.add(random_idx);
-
-            // add to centroid list
-            centroids.add(sampledData.get(random_idx).copy());
-            counter++;
-            if (counter == numOfCluster)
-                break;
-        }
-        // debugging
-        // debugMsgOfAllCentroids();
+        
     }
 
     // constructor for benchmark which just need centroids value and func in this
@@ -86,6 +178,11 @@ public class Cluster {
     public Cluster(ArrayList<float[]> centroids, int numOfCluster) {
         this.centroids = centroids;
         this.numOfCluster = numOfCluster;
+    }
+
+    public void setMeanStand(VectorConstant mean, VectorConstant stand){
+        this.meanOfAllDIM = mean;
+        this.standOfAllDIM = stand;
     }
 
     void clustering(int numOfRound) {
@@ -123,12 +220,14 @@ public class Cluster {
                 // System.out.println("samples num in cluster" + j + " = " + samplesInCluster);
                 if ((Integer) samplesInCluster.asJavaVal() == 0)
                     continue;
-                VectorConstant newCentroid = VectorConstant.zeros(SiftBenchConstants.NUM_DIMENSION);
+                VectorConstant newCentroid = VectorConstant.zeros(N_DIM);
                 for (int n = 0; n < (Integer) samplesInCluster.asJavaVal(); n++) {
                     newCentroid = (VectorConstant) newCentroid.add(dataCluster.get(j).get(n).div(samplesInCluster));
                     // System.out.println("samples = "+ newCentroid);
                 }
                 // update centroid to new value
+                //do rounding first
+                newCentroid = VectorConstant.rounding(newCentroid, N_DIM);
                 centroids.set(j, newCentroid.copy());
             }
         }
@@ -136,9 +235,11 @@ public class Cluster {
         System.out.println("after clustering centroids =");
         for (int i = 0; i < numOfCluster; i++) {
             System.out.println("centroid" + i + " = ");
-            for (int j = 0; j < SiftBenchConstants.NUM_DIMENSION; j++) {
+            for (int j = 0; j < N_DIM; j++) {
                 System.out.print(centroids.get(i)[j] + " ");
             }
+            VectorConstant temp = new VectorConstant(centroids.get(i));
+            System.out.print("len = "+ temp.dimension());
             System.out.println(" ");
         }
 
@@ -267,6 +368,11 @@ public class Cluster {
         return float_nums;
     }
 
+    public VectorConstant stringToVectorWithReduction(String vectorString, int dimension) {
+        float[] float_nums = stringToVector(vectorString);
+        return normAndReduceDim(new VectorConstant(float_nums), dimension);
+    }
+
     public ArrayList<float[]> getCentroid() {
         return centroids;
     }
@@ -275,7 +381,7 @@ public class Cluster {
         System.out.println("initialed centroids =");
         for (int i = 0; i < numOfCluster; i++) {
             System.out.println("centroid" + i + " = ");
-            for (int j = 0; j < SiftBenchConstants.NUM_DIMENSION; j++) {
+            for (int j = 0; j < N_DIM; j++) {
                 System.out.print(centroids.get(i)[j] + " ");
             }
             System.out.println(" ");
@@ -303,5 +409,20 @@ public class Cluster {
             double temp_dis = distFn.distance(tempConstant);
             System.out.println("distance to centroid" + j + " = " + temp_dis);
         }
+    }
+
+    public VectorConstant reduceDim (VectorConstant origin, int dimension){
+        float[] new_float = new float[(int)dimension/2];
+        for (int i = 0;i < (int)dimension/2;i++){
+            new_float[i] = (float) ((float) Math.round(origin.get(i*2) + origin.get(i*2+1) * 1000) / 1000);
+        }
+        return new VectorConstant(new_float);
+    }
+
+    public VectorConstant normAndReduceDim(VectorConstant origin, int dimension){
+        // normalize
+        VectorConstant normVec = (VectorConstant)((VectorConstant) origin.sub(meanOfAllDIM)).elementDiv(standOfAllDIM);
+        // reduce dim
+        return reduceDim(normVec, dimension);
     }
 }

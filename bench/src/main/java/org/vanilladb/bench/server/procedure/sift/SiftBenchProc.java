@@ -7,6 +7,7 @@ import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.concurrent.*;
 
+import org.vanilladb.bench.benchmarks.sift.SiftBenchConstants;
 import org.vanilladb.bench.server.param.sift.SiftBenchParamHelper;
 import org.vanilladb.bench.server.procedure.StoredProcedureUtils;
 import org.vanilladb.bench.util.CustomPair;
@@ -31,7 +32,7 @@ public class SiftBenchProc extends StoredProcedure<SiftBenchParamHelper> {
         NEAREST_CENTROID, TOP_K_NEAREST_CENTROID, TKNC_CONCURRENT
     }
 
-    private Strategy strategy = Strategy.TKNC_CONCURRENT;
+    private Strategy strategy = Strategy.TOP_K_NEAREST_CENTROID;
 
     public SiftBenchProc() {
         super(new SiftBenchParamHelper());
@@ -41,9 +42,8 @@ public class SiftBenchProc extends StoredProcedure<SiftBenchParamHelper> {
     protected void executeSql() {
 
         SiftBenchParamHelper paramHelper = getHelper();
-        VectorConstant query = paramHelper.getQuery();
         Transaction tx = getTransaction();
-        distFn.setQueryVector(query);
+        
 
         // build up the cluster for this class when the program first use the instance
         // of
@@ -63,9 +63,27 @@ public class SiftBenchProc extends StoredProcedure<SiftBenchParamHelper> {
             // new cluster here, just need the centroid varible in cluster here.
             cluster = new Cluster(centroids, numOfCluster);
             System.out.println("rebuilding cluster, cluster num = " + numOfCluster);
+            if(cluster.getDimReduction()){
+                String meanStandQuery = "SELECT mean , stand FROM mean_stand";
+                Scan findMeanStand = StoredProcedureUtils.executeQuery(meanStandQuery, tx);
+                VectorConstant mean = new VectorConstant(SiftBenchConstants.NUM_DIMENSION);
+                VectorConstant  stand = new VectorConstant(SiftBenchConstants.NUM_DIMENSION);
+                findMeanStand.beforeFirst();
+                while (findMeanStand.next()) {
+                    mean = (VectorConstant)findMeanStand.getVal("mean");
+                    stand = (VectorConstant)findMeanStand.getVal("stand");
+                }
+                findMeanStand.close(); // make sure tx close
+                cluster.setMeanStand(mean, stand);
+            } 
             haveCluster = true;
         }
         /********************************************************************************** */
+
+        VectorConstant query = paramHelper.getQuery();
+        // set new query
+        if (cluster.getDimReduction()) query = cluster.normAndReduceDim(query, SiftBenchConstants.NUM_DIMENSION);
+        distFn.setQueryVector(query);
 
         /*
          * String nnQuery = "SELECT i_id FROM " + paramHelper.getTableName() +

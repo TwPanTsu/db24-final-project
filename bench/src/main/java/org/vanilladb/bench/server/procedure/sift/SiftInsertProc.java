@@ -2,6 +2,7 @@ package org.vanilladb.bench.server.procedure.sift;
 
 import java.util.ArrayList;
 
+import org.vanilladb.bench.benchmarks.sift.SiftBenchConstants;
 import org.vanilladb.bench.server.param.sift.SiftInsertParamHelper;
 import org.vanilladb.bench.server.procedure.StoredProcedureUtils;
 import org.vanilladb.core.query.algebra.Scan;
@@ -41,11 +42,26 @@ public class SiftInsertProc extends StoredProcedure<SiftInsertParamHelper> {
             // new cluster here, just need the centroid varible in cluster here.
             cluster = new Cluster(centroids, numOfCluster);
             System.out.println("rebuilding cluster, cluster num = " + numOfCluster);
+            if(cluster.getDimReduction()){
+                String meanStandQuery = "SELECT mean , stand FROM mean_stand";
+                Scan findMeanStand = StoredProcedureUtils.executeQuery(meanStandQuery, tx);
+                VectorConstant mean = new VectorConstant(SiftBenchConstants.NUM_DIMENSION);
+                VectorConstant  stand = new VectorConstant(SiftBenchConstants.NUM_DIMENSION);
+                findMeanStand.beforeFirst();
+                while (findMeanStand.next()) {
+                    mean = (VectorConstant)findMeanStand.getVal("mean");
+                    stand = (VectorConstant)findMeanStand.getVal("stand");
+                }
+                findMeanStand.close(); // make sure tx close
+                cluster.setMeanStand(mean, stand);
+            } 
             haveCluster = true;
         }
         /********************************************************************************** */
 
         VectorConstant v = paramHelper.getNewVector();
+        // set new query
+        if (cluster.getDimReduction()) v = cluster.normAndReduceDim(v, SiftBenchConstants.NUM_DIMENSION);
 
         //String sql = "INSERT INTO sift(i_id, i_emb) VALUES (" + paramHelper.getId() + ", " + v.toString() + ")";
         

@@ -33,6 +33,8 @@ public class VectorConstant extends Constant implements Serializable {
         return new VectorConstant(vec);
     }
 
+    
+
     /**
      * Return a vector constant with random values
      * @param length size of the vector
@@ -205,9 +207,19 @@ public class VectorConstant extends Constant implements Serializable {
         return new VectorConstant(res);
     }
 
-    @Override
+    @Override // do elementwise mul
     public Constant mul(Constant c) {
-        throw new UnsupportedOperationException("Vector doesn't support multiplication");
+        if (!(c instanceof VectorConstant)) {
+            throw new UnsupportedOperationException("Vector doesn't support subtraction with other constants");
+        }
+
+        assert dimension() == ((VectorConstant) c).dimension();
+
+        float[] res = new float[dimension()];
+        for (int i = 0; i < dimension(); i++) {
+            res[i] = (float)(this.get(i) * ((VectorConstant) c).get(i));
+        }
+        return new VectorConstant(res);
     }
 
     @Override
@@ -218,6 +230,29 @@ public class VectorConstant extends Constant implements Serializable {
         float[] res = new float[dimension()];
         for (int i = 0; i < dimension(); i++) {
             res[i] = this.get(i) / (Integer) c.asJavaVal();
+        }
+        return new VectorConstant(res);
+    }
+
+    // do elementwise sqrt
+    public Constant sqrt() {
+        float[] res = new float[dimension()];
+        for (int i = 0; i < dimension(); i++) {
+            res[i] = (float) Math.sqrt(this.get(i));
+        }
+        return new VectorConstant(res);
+    }
+
+    public Constant elementDiv(Constant c) {
+        if (!(c instanceof VectorConstant)) {
+            throw new UnsupportedOperationException("Vector doesn't support subtraction with other constants");
+        }
+
+        assert dimension() == ((VectorConstant) c).dimension();
+
+        float[] res = new float[dimension()];
+        for (int i = 0; i < dimension(); i++) {
+            res[i] = (float)(this.get(i) / ((VectorConstant) c).get(i));
         }
         return new VectorConstant(res);
     }
@@ -259,5 +294,13 @@ public class VectorConstant extends Constant implements Serializable {
             hashCodes[i] = hashCode;
         }
         return hashCodes;
+    }
+
+    public static VectorConstant rounding(VectorConstant origin, int dim){
+        float[] origin_val = origin.asJavaVal();
+        for(int i=0;i<dim;i++){
+            origin_val[i] = (float) ((float) Math.round((origin_val[i]) * 1000) / 1000);
+        }
+        return new VectorConstant(origin_val);
     }
 }
