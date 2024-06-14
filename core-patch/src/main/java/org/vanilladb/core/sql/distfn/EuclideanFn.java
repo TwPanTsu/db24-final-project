@@ -10,6 +10,7 @@ public class EuclideanFn extends DistanceFn {
 
     public EuclideanFn(VectorConstant query) {
         super("");
+        // System.out.println(query.asJavaVal());
         this.query = query;
     }
 
@@ -22,5 +23,5 @@ public class EuclideanFn extends DistanceFn {
         }
         return Math.sqrt(sum);
     }
-    
+
 }

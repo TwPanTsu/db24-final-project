@@ -12,7 +12,7 @@ public class Cluster {
 
     private int id;
     private VectorConstant centroid;
-    private List<VectorPair<VectorConstant, RecordId>> points;
+    private List<VectorPair> points;
 
     public Cluster(int id, VectorConstant centroid) {
         this.id = id;
@@ -32,11 +32,11 @@ public class Cluster {
         this.centroid = centroid;
     }
 
-    public List<VectorPair<VectorConstant, RecordId>> getPoints() {
+    public List<VectorPair> getPoints() {
         return points;
     }
 
-    public void addPoint(VectorPair<VectorConstant, RecordId> point) {
+    public void addPoint(VectorPair point) {
         points.add(point);
     }
 
@@ -46,7 +46,7 @@ public class Cluster {
 
     public VectorConstant calculateCentroid() {
         var new_arr = new float[centroid.dimension()];
-        for (VectorPair<VectorConstant, RecordId> point : points) {
+        for (VectorPair point : points) {
             for (int i = 0; i < centroid.dimension(); i++) {
                 new_arr[i] += point.VectorConst.get(i);
             }

@@ -21,6 +21,7 @@ import static org.vanilladb.core.sql.Type.INTEGER;
 import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.List;
 import java.util.Collections;
 import java.util.PriorityQueue;
 import java.util.logging.Level;
@@ -34,6 +35,7 @@ import org.vanilladb.core.sql.Constant;
 import org.vanilladb.core.sql.IntegerConstant;
 import org.vanilladb.core.sql.Schema;
 import org.vanilladb.core.sql.VectorConstant;
+import org.vanilladb.core.sql.VectorConstantRange;
 import org.vanilladb.core.sql.distfn.DistanceFn;
 import org.vanilladb.core.sql.distfn.EuclideanFn;
 import org.vanilladb.core.storage.buffer.Buffer;
@@ -52,7 +54,6 @@ import org.vanilladb.core.storage.tx.concurrency.ConcurrencyMgr;
 import org.vanilladb.core.util.CoreProperties;
 import org.vanilladb.core.server.VanillaDb;
 
-// import org.vanilladb.core.storage.index.cluster.VectorHeap;
 import java.util.concurrent.locks.ReadWriteLock;
 
 /**
@@ -71,24 +72,30 @@ public class IVFFlatIndex extends Index {
 
     public static final int NUM_CLUSTERS_MAX;
     public static final int NUM_CLUSTERS_TOTAL;
+    public static final int NUM_DIMENSION;
+
     private ConcurrencyMgr ccMgr;
     private IndexInfo ii;
     private TableInfo ti;
     private int clusterNum;
-    // private static int insertNum = 0; // Times of insertion
-    // private static int numVectors = 0;
-    // private static int refactorNum = 1000;
-    // private static int addNum = 100;
-    // private static int initClusters = 5;
-    // private static int maxConvergeTimes = 5;
-    // private static ReadWriteLock rwLock;
-    // private int numUnpackClusters;
+    private static int insertNum = 0; // Times of insertion
+    private static int numVectors = 0;
+    private static int refactorNum = 1000;
+    private static int addNum = 100;
+    private static int initClusters = 5;
+    private static int maxConvergeTimes = 5;
+    private static ReadWriteLock rwLock;
+    private PriorityQueue<VectorPairComparable> pqCentroids = null;
+    private List<VectorPair> listCentroids = null;
 
     static {
         NUM_CLUSTERS_MAX = CoreProperties.getLoader().getPropertyAsInteger(
                 IVFFlatIndex.class.getName() + ".NUM_CLUSTERS_MAX", 10);
         NUM_CLUSTERS_TOTAL = CoreProperties.getLoader().getPropertyAsInteger(
                 IVFFlatIndex.class.getName() + ".NUM_CLUSTERS_TOTAL", 2000);
+        NUM_DIMENSION = CoreProperties.getLoader().getPropertyAsInteger(
+                IVFFlatIndex.class.getName() + ".NUM_DIMENSION", 128);
+        // rwLock = new ReentrantReadWriteLock(true);
     }
 
     public IVFFlatIndex(IndexInfo ii, SearchKeyType keyType, Transaction tx) {
@@ -97,20 +104,21 @@ public class IVFFlatIndex extends Index {
         this.ii = ii;
 
         this.ti = getIndexUsedTableInfo(ii.indexName(), schema(keyType));
-        this.rf = ti.open(tx, false);
+        // System.out.println("Table: "+ii.indexName());
+        // this.rf = ti.open(tx, false);
 
-        // Count the number of clusters
-        if (rf.fileSize() == 0) {
-            RecordFile.formatFileHeader(ti.fileName(), tx);
-            this.clusterNum = 0;
-        } else {
-            rf.beforeFirst();
-            while (rf.next()) {
-                this.clusterNum++;
-            }
-        }
-        rf.close();
-
+        // // Count the number of clusters
+        // if (rf.fileSize() == 0) {
+        //     RecordFile.formatFileHeader(ti.fileName(), tx);
+        //     this.clusterNum = 0;
+        // } else {
+        //     rf.beforeFirst();
+        //     while (rf.next()) {
+        //         this.clusterNum++;
+        //     }
+        // }
+        // rf.close();
+        // System.out.println("Num: "+clusterNum);
     }
 
     public static long searchCost(SearchKeyType keyType, long totRecs, long matchRecs) {
@@ -156,7 +164,7 @@ public class IVFFlatIndex extends Index {
     @Override
     public void preLoadToMemory() {
         for (int i = 0; i < NUM_CLUSTERS_MAX; i++) {
-            String tblname = ii.indexName() + i + ".centroid";
+            String tblname = ii.indexName() + i + ".tbl";
             long size = fileSize(tblname);
             BlockId blk;
             for (int j = 0; j < size; j++) {
@@ -176,14 +184,23 @@ public class IVFFlatIndex extends Index {
      */
     @Override
     public void beforeFirst(SearchRange searchRange) {
-        // TODO
-        if (!searchRange.isSingleValue())
-            throw new UnsupportedOperationException();
-        System.out.println("SearchRange: " + searchRange.asSearchKey().toString());
-        this.searchKey = searchRange.asSearchKey();
-        // for (int i = 0; i < this.clusterNum; i++) {
+        throw new UnsupportedOperationException("Unimplemented method 'IVF_FLATIndex::beforeFirst'");
+    }
 
-        // }
+    public void beforeFirst(DistanceFn distFn) {
+        // support the equality query only
+        // if (!searchRange.isSingleValue())
+        // throw new UnsupportedOperationException();
+
+        this.pqCentroids = new PriorityQueue<VectorPairComparable>();
+        this.listCentroids = new ArrayList<VectorPair>();
+
+        this.ti = getIndexUsedTableInfo(ii.indexName(), schema(keyType));
+        this.rf = this.ti.open(tx, false);
+        this.rf.close();
+
+        System.out.println("Num: " + this.clusterNum); // 10000
+        
 
         isBeforeFirsted = true;
     }
@@ -195,11 +212,9 @@ public class IVFFlatIndex extends Index {
      */
     @Override
     public boolean next() {
-        // TODO
         if (!isBeforeFirsted)
             throw new IllegalStateException("You must call beforeFirst() before iterating index '"
                     + ii.indexName() + "'");
-
         while (rf.next())
             if (getKey().equals(searchKey))
                 return true;
@@ -294,5 +309,10 @@ public class IVFFlatIndex extends Index {
         for (int i = 0; i < vals.length; i++)
             vals[i] = rf.getVal(keyFieldName(i));
         return new SearchKey(vals);
+    }
+
+    public VectorPair getVectorPair() {
+        var v = (VectorConstant) rf.getVal(SCHEMA_KEY);
+        return new VectorPair(v, getDataRecordId());
     }
 }
