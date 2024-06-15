@@ -134,7 +134,7 @@ public class IVFIndex extends Index {
 
 		this.searchKey = searchRange.asSearchKey();
         
-		int bucket = searchKey.hashCode() % NUM_BUCKETS;
+		int bucket = searchKey.hashCode() % NUM_CLUSTERS;
 		String tblname = ii.indexName() + bucket;
 		TableInfo ti = new TableInfo(tblname, schema(keyType));
 
