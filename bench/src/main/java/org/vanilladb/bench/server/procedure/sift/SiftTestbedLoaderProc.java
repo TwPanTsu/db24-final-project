@@ -83,7 +83,7 @@ public class SiftTestbedLoaderProc extends StoredProcedure<SiftTestbedLoaderPara
             StoredProcedureUtils.executeUpdate(sql, tx);
 
         // build mean, standard deviation table
-        if(paramHelper.getDimReduction() || paramHelper.getNormOri()){
+        if(paramHelper.getNormOri()){
             for (String sql : paramHelper.getMeanStandSchemas())
                 StoredProcedureUtils.executeUpdate(sql, tx);
         }
@@ -139,12 +139,16 @@ public class SiftTestbedLoaderProc extends StoredProcedure<SiftTestbedLoaderPara
 
                 // insert the record to its cluster
                 String this_sql;
-                if(cluster.getDimReduction()){
+                if(cluster.getDimReduction() && cluster.getNormOri()){
+                    VectorConstant reducedAndNormVec = cluster.stringToVectorWithReductionAndNorm(vectorString, SiftBenchConstants.NUM_DIMENSION);
+                    int centroid_id = cluster.getNearestCentroidId(reducedAndNormVec);
+                    this_sql = "INSERT INTO cluster_"+ centroid_id +"(i_id, i_emb) VALUES (" + iid + ", " + reducedAndNormVec.toString() + ")";
+                    //System.out.println(this_sql+", len = "+ reducedVec.dimension());
+                } else if (cluster.getDimReduction()){// just reduction
                     VectorConstant reducedVec = cluster.stringToVectorWithReduction(vectorString, SiftBenchConstants.NUM_DIMENSION);
                     int centroid_id = cluster.getNearestCentroidId(reducedVec);
                     this_sql = "INSERT INTO cluster_"+ centroid_id +"(i_id, i_emb) VALUES (" + iid + ", " + reducedVec.toString() + ")";
-                    //System.out.println(this_sql+", len = "+ reducedVec.dimension());
-                } else if (cluster.getNormOri()){
+                } else if (cluster.getNormOri()){//just norm
                     VectorConstant normVec = new VectorConstant(cluster.stringToVector(vectorString));
                     normVec = cluster.normVector(normVec);
                     int centroid_id = cluster.getNearestCentroidId(normVec);

@@ -61,8 +61,8 @@ public class SiftInsertProc extends StoredProcedure<SiftInsertParamHelper> {
 
         VectorConstant v = paramHelper.getNewVector();
         // set new query
-        if (cluster.getDimReduction()) v = cluster.normAndReduceDim(v, SiftBenchConstants.NUM_DIMENSION);
         if (cluster.getNormOri()) v = cluster.normVector(v);
+        if (cluster.getDimReduction()) v = cluster.reduceDim(v, SiftBenchConstants.NUM_DIMENSION);
 
         //String sql = "INSERT INTO sift(i_id, i_emb) VALUES (" + paramHelper.getId() + ", " + v.toString() + ")";
         

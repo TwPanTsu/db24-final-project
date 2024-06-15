@@ -32,7 +32,7 @@ public class SiftBenchProc extends StoredProcedure<SiftBenchParamHelper> {
         NEAREST_CENTROID, TOP_K_NEAREST_CENTROID, TKNC_CONCURRENT
     }
 
-    private Strategy strategy = Strategy.TOP_K_NEAREST_CENTROID;
+    private Strategy strategy = Strategy.NEAREST_CENTROID;
 
     public SiftBenchProc() {
         super(new SiftBenchParamHelper());
@@ -82,8 +82,8 @@ public class SiftBenchProc extends StoredProcedure<SiftBenchParamHelper> {
 
         VectorConstant query = paramHelper.getQuery();
         // set new query
-        if (cluster.getDimReduction()) query = cluster.normAndReduceDim(query, SiftBenchConstants.NUM_DIMENSION);
         if (cluster.getNormOri()) query = cluster.normVector(query);
+        if (cluster.getDimReduction()) query = cluster.reduceDim(query, SiftBenchConstants.NUM_DIMENSION);
         distFn.setQueryVector(query);
 
         /*

@@ -29,15 +29,15 @@ public class Cluster {
     DistanceFn distFn = new EuclideanFn("i_emb");
 
     // dimension reduction parameter~!
-    boolean DIM_REDUCTION = false;
+    boolean DIM_REDUCTION = true;
     int N_DIM = (DIM_REDUCTION) ? 64 : 128;
 
     // new data needed for normalization // all have 128 instances
     VectorConstant meanOfAllDIM;
     VectorConstant standOfAllDIM; // for standard diveation
 
-    // normalize parameter for non-dimension-reduction mode
-    boolean NORM_ORIGIN_DIM = true;
+    // normalize parameter
+    boolean NORM_ORIGIN_DIM = false;
 
     public boolean getDimReduction(){
         return DIM_REDUCTION;
@@ -81,23 +81,24 @@ public class Cluster {
 
             System.out.println("samples num = " + numOfSample);
 
-            //Do dimension reduction here
-            // calculate mean of all dimension by all the sample
-            meanOfAllDIM = VectorConstant.zeros(SiftBenchConstants.NUM_DIMENSION);
-            IntegerConstant numOfSampleConstant = new IntegerConstant(numOfSample); // for div
-            for (int i=0;i<numOfSample;i++){
-                meanOfAllDIM = (VectorConstant)meanOfAllDIM.add(tempSampledData.get(i).div(numOfSampleConstant));
-            }
-            // calculate standard diveation of all dimension by all the sample
-            standOfAllDIM = VectorConstant.zeros(SiftBenchConstants.NUM_DIMENSION);
-            for (int i=0;i<numOfSample;i++){
-                standOfAllDIM = (VectorConstant)standOfAllDIM.add(tempSampledData.get(i).mul(tempSampledData.get(i)).div(numOfSampleConstant));
-            }
-            standOfAllDIM = (VectorConstant)standOfAllDIM.sqrt();
+            if(NORM_ORIGIN_DIM){
+                // calculate mean of all dimension by all the sample
+                meanOfAllDIM = VectorConstant.zeros(SiftBenchConstants.NUM_DIMENSION);
+                IntegerConstant numOfSampleConstant = new IntegerConstant(numOfSample); // for div
+                for (int i=0;i<numOfSample;i++){
+                    meanOfAllDIM = (VectorConstant)meanOfAllDIM.add(tempSampledData.get(i).div(numOfSampleConstant));
+                }
+                // calculate standard diveation of all dimension by all the sample
+                standOfAllDIM = VectorConstant.zeros(SiftBenchConstants.NUM_DIMENSION);
+                for (int i=0;i<numOfSample;i++){
+                    standOfAllDIM = (VectorConstant)standOfAllDIM.add(tempSampledData.get(i).mul(tempSampledData.get(i)).div(numOfSampleConstant));
+                }
+                standOfAllDIM = (VectorConstant)standOfAllDIM.sqrt();
 
-            // normalize all sample 
-            for (int i=0;i<numOfSample;i++){ // need a lot type casting ...
-                tempSampledData.set(i, (VectorConstant)((VectorConstant) tempSampledData.get(i).sub(meanOfAllDIM)).elementDiv(standOfAllDIM));
+                // normalize all sample 
+                for (int i=0;i<numOfSample;i++){ // need a lot type casting ...
+                    tempSampledData.set(i, (VectorConstant)((VectorConstant) tempSampledData.get(i).sub(meanOfAllDIM)).elementDiv(standOfAllDIM));
+                }
             }
 
             if(DIM_REDUCTION){
@@ -384,6 +385,11 @@ public class Cluster {
 
     public VectorConstant stringToVectorWithReduction(String vectorString, int dimension) {
         float[] float_nums = stringToVector(vectorString);
+        return reduceDim(new VectorConstant(float_nums), dimension);
+    }
+
+    public VectorConstant stringToVectorWithReductionAndNorm(String vectorString, int dimension) {
+        float[] float_nums = stringToVector(vectorString);
         return normAndReduceDim(new VectorConstant(float_nums), dimension);
     }
 
@@ -428,7 +434,10 @@ public class Cluster {
     public VectorConstant reduceDim (VectorConstant origin, int dimension){
         float[] new_float = new float[(int)dimension/2];
         for (int i = 0;i < (int)dimension/2;i++){
-            new_float[i] = (float) ((float) Math.round((origin.get(i*2) + origin.get(i*2+1)) * 1000) / 1000);
+            // a+b = c
+            //new_float[i] = (float) ((float) Math.round((origin.get(i*2) + origin.get(i*2+1)) * 1000) / 1000);
+            // sqrt(a*a+b*b) = c
+            new_float[i] = (float) ((float) Math.round(Math.sqrt(Math.pow(origin.get(i*2),2) + Math.pow(origin.get(i*2+1),2)) * 1000) / 1000);
         }
         return new VectorConstant(new_float);
     }
