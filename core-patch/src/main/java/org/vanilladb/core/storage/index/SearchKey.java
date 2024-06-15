@@ -21,6 +21,11 @@ import java.util.List;
 import java.util.Map;
 
 import org.vanilladb.core.sql.Constant;
+import org.vanilladb.core.sql.VectorConstant;
+import org.vanilladb.core.sql.distfn.DistanceFn;
+import org.vanilladb.core.sql.distfn.EuclideanFn;
+
+import static org.vanilladb.core.sql.Type.VECTOR;
 
 /**
  * A SearchKey represents an array of constants for a list of indexed fields.
@@ -30,6 +35,7 @@ public class SearchKey implements Comparable<SearchKey> {
 	private Constant[] vals;
 	private boolean hasHashCode;
 	private int hashCode;
+	private DistanceFn distanceFn;
 
 	/**
 	 * Constructs from the given values for the specified field names.
