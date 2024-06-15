@@ -112,7 +112,7 @@ public class SiftTestbedLoaderProc extends StoredProcedure<SiftTestbedLoaderPara
         Transaction tx = getTransaction();
 
         // Insert Mean and standard diveation data
-        if(paramHelper.getDimReduction() || paramHelper.getNormOri()){
+        if(paramHelper.getNormOri()){
             String sql = "INSERT INTO mean_stand(mean, stand) VALUES (" + cluster.meanOfAllDIM.toString() + ", " + cluster.standOfAllDIM.toString() + ")";
             StoredProcedureUtils.executeUpdate(sql, tx);
         }
