@@ -15,6 +15,12 @@ public abstract class DistanceFn {
         this.query = query;
     }
     
+    /**
+     * Calculating the distance between vector entries.
+     * 
+     * @param vec input vector
+     * @return
+     */
     public double distance(VectorConstant vec) {
         // check vector dimension
         if (query.dimension() != vec.dimension()) {

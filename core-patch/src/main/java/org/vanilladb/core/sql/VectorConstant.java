@@ -46,6 +46,22 @@ public class VectorConstant extends Constant implements Serializable {
         }
     }
 
+    // TODO Final
+    /**
+     * Return a vector constant with dimension of dim 
+     * and value of all entries of val.
+     * @param dimension Dimension of the vector.
+     * @param value     Value of all entries.
+     */
+    public VectorConstant(int dimension, int value){
+        type = new VectorType(dimension);
+        vec = new float[dimension];
+
+        for (int i = 0; i < dimension; i++) {
+            vec[i] = value;
+        }
+    }
+
     public VectorConstant(float[] vector) {
         type = new VectorType(vector.length);
         vec = new float[vector.length];

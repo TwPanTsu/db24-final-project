@@ -39,12 +39,14 @@ public class VectorType extends Type {
 
     @Override
     public Constant maxValue() {
-        throw new UnsupportedOperationException("VectorType does not support maxValue()");
+        // TODO Unfinished
+        return new VectorConstant(size, 9999);
     }
 
     @Override
     public Constant minValue() {
-        throw new UnsupportedOperationException("VectorType does not support minValue()");
+        // TODO Unfinished
+        return new VectorConstant(size, -9999);
     }
 
     @Override
