@@ -42,7 +42,7 @@ public class SiftInsertProc extends StoredProcedure<SiftInsertParamHelper> {
             // new cluster here, just need the centroid varible in cluster here.
             cluster = new Cluster(centroids, numOfCluster);
             System.out.println("rebuilding cluster, cluster num = " + numOfCluster);
-            if(cluster.getDimReduction() || cluster.getNormOri()){
+            if(cluster.getNormOri()){
                 String meanStandQuery = "SELECT mean , stand FROM mean_stand";
                 Scan findMeanStand = StoredProcedureUtils.executeQuery(meanStandQuery, tx);
                 VectorConstant mean = new VectorConstant(SiftBenchConstants.NUM_DIMENSION);
