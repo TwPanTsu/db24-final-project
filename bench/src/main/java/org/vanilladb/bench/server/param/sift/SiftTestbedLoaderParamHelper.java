@@ -15,7 +15,7 @@ public class SiftTestbedLoaderParamHelper implements StoredProcedureHelper {
 
     // dimension reduction parameter~!
     private static final boolean DIM_REDUCTION = true;
-    private static final int N_DIM = (DIM_REDUCTION) ? (int)SiftBenchConstants.NUM_DIMENSION/2 : SiftBenchConstants.NUM_DIMENSION;
+    private static final int N_DIM = (DIM_REDUCTION) ? (int)SiftBenchConstants.NUM_DIMENSION/4 : SiftBenchConstants.NUM_DIMENSION;
 
     // new values
     private static final String CENTROIDS_DDL[] = new String[1];

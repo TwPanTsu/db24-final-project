@@ -30,7 +30,7 @@ public class Cluster {
 
     // dimension reduction parameter~!
     boolean DIM_REDUCTION = true;
-    int N_DIM = (DIM_REDUCTION) ? 64 : 128;
+    int N_DIM = (DIM_REDUCTION) ? 32 : 128;
 
     // new data needed for normalization // all have 128 instances
     VectorConstant meanOfAllDIM;
@@ -432,12 +432,12 @@ public class Cluster {
     }
 
     public VectorConstant reduceDim (VectorConstant origin, int dimension){
-        float[] new_float = new float[(int)dimension/2];
-        for (int i = 0;i < (int)dimension/2;i++){
+        float[] new_float = new float[(int)dimension/4];
+        for (int i = 0;i < (int)dimension/4;i++){
             // a+b = c
-            //new_float[i] = (float) ((float) Math.round((origin.get(i*2) + origin.get(i*2+1)) * 1000) / 1000);
+            //new_float[i] = (float) ((float) Math.round((origin.get(i*4) + origin.get(i*4+1) + origin.get(i*4+2) + origin.get(i*4+3)) * 1000) / 1000);
             // sqrt(a*a+b*b) = c
-            new_float[i] = (float) ((float) Math.round(Math.sqrt(Math.pow(origin.get(i*2),2) + Math.pow(origin.get(i*2+1),2)) * 1000) / 1000);
+            new_float[i] = (float) ((float) Math.round(Math.sqrt(Math.pow(origin.get(i*4),2) + Math.pow(origin.get(i*4+1),2) + Math.pow(origin.get(i*4 +2),2) + Math.pow(origin.get(i*4+3),2)) * 1000) / 1000);
         }
         return new VectorConstant(new_float);
     }
