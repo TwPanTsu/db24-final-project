@@ -82,7 +82,8 @@ public class SiftTestbedLoaderProc extends StoredProcedure<SiftTestbedLoaderPara
         for (String sql : paramHelper.getClusterSchemas())
             StoredProcedureUtils.executeUpdate(sql, tx);
 
-        if(paramHelper.getDimReduction()){
+        // build mean, standard deviation table
+        if(paramHelper.getDimReduction() || paramHelper.getNormOri()){
             for (String sql : paramHelper.getMeanStandSchemas())
                 StoredProcedureUtils.executeUpdate(sql, tx);
         }
@@ -111,7 +112,7 @@ public class SiftTestbedLoaderProc extends StoredProcedure<SiftTestbedLoaderPara
         Transaction tx = getTransaction();
 
         // Insert Mean and standard diveation data
-        if(paramHelper.getDimReduction()){
+        if(paramHelper.getDimReduction() || paramHelper.getNormOri()){
             String sql = "INSERT INTO mean_stand(mean, stand) VALUES (" + cluster.meanOfAllDIM.toString() + ", " + cluster.standOfAllDIM.toString() + ")";
             StoredProcedureUtils.executeUpdate(sql, tx);
         }
@@ -137,18 +138,22 @@ public class SiftTestbedLoaderProc extends StoredProcedure<SiftTestbedLoaderPara
                 StoredProcedureUtils.executeUpdate(sql, tx);
 
                 // insert the record to its cluster
+                String this_sql;
                 if(cluster.getDimReduction()){
                     VectorConstant reducedVec = cluster.stringToVectorWithReduction(vectorString, SiftBenchConstants.NUM_DIMENSION);
                     int centroid_id = cluster.getNearestCentroidId(reducedVec);
-                    String this_sql = "INSERT INTO cluster_"+ centroid_id +"(i_id, i_emb) VALUES (" + iid + ", " + reducedVec.toString() + ")";
+                    this_sql = "INSERT INTO cluster_"+ centroid_id +"(i_id, i_emb) VALUES (" + iid + ", " + reducedVec.toString() + ")";
                     //System.out.println(this_sql+", len = "+ reducedVec.dimension());
-                    StoredProcedureUtils.executeUpdate(this_sql, tx);
-                } else {
+                } else if (cluster.getNormOri()){
+                    VectorConstant normVec = new VectorConstant(cluster.stringToVector(vectorString));
+                    normVec = cluster.normVector(normVec);
+                    int centroid_id = cluster.getNearestCentroidId(normVec);
+                    this_sql = "INSERT INTO cluster_"+ centroid_id +"(i_id, i_emb) VALUES (" + iid + ", " + normVec.toString() + ")";
+                }else {
                     int centroid_id = cluster.getNearestCentroidId(vectorString);
-                    String this_sql = "INSERT INTO cluster_"+ centroid_id +"(i_id, i_emb) VALUES (" + iid + ", [" + vectorString + "])";
-                    StoredProcedureUtils.executeUpdate(this_sql, tx);
+                    this_sql = "INSERT INTO cluster_"+ centroid_id +"(i_id, i_emb) VALUES (" + iid + ", [" + vectorString + "])";
                 }
-                
+                StoredProcedureUtils.executeUpdate(this_sql, tx);
                 iid++;
             }
         } catch (IOException e) {

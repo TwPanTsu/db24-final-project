@@ -63,7 +63,7 @@ public class SiftBenchProc extends StoredProcedure<SiftBenchParamHelper> {
             // new cluster here, just need the centroid varible in cluster here.
             cluster = new Cluster(centroids, numOfCluster);
             System.out.println("rebuilding cluster, cluster num = " + numOfCluster);
-            if(cluster.getDimReduction()){
+            if(cluster.getDimReduction() || cluster.getNormOri()){
                 String meanStandQuery = "SELECT mean , stand FROM mean_stand";
                 Scan findMeanStand = StoredProcedureUtils.executeQuery(meanStandQuery, tx);
                 VectorConstant mean = new VectorConstant(SiftBenchConstants.NUM_DIMENSION);
@@ -83,6 +83,7 @@ public class SiftBenchProc extends StoredProcedure<SiftBenchParamHelper> {
         VectorConstant query = paramHelper.getQuery();
         // set new query
         if (cluster.getDimReduction()) query = cluster.normAndReduceDim(query, SiftBenchConstants.NUM_DIMENSION);
+        if (cluster.getNormOri()) query = cluster.normVector(query);
         distFn.setQueryVector(query);
 
         /*

@@ -36,17 +36,23 @@ public class Cluster {
     VectorConstant meanOfAllDIM;
     VectorConstant standOfAllDIM; // for standard diveation
 
+    // normalize parameter for non-dimension-reduction mode
+    boolean NORM_ORIGIN_DIM = true;
+
     public boolean getDimReduction(){
         return DIM_REDUCTION;
     }
     public int getNDim(){
         return N_DIM;
     }
+    public boolean getNormOri(){
+        return NORM_ORIGIN_DIM;
+    }
 
     public Cluster(int numOfCluster) {
         this.numOfCluster = numOfCluster;
 
-        if (DIM_REDUCTION){
+        if (DIM_REDUCTION || NORM_ORIGIN_DIM){
             // collect sample data and set number of data to take into account
             numOfSample = 0;// to calculate the total num of sample
             try (BufferedReader br = new BufferedReader(new FileReader(SiftBenchConstants.DATASET_FILE))) {
@@ -94,11 +100,19 @@ public class Cluster {
                 tempSampledData.set(i, (VectorConstant)((VectorConstant) tempSampledData.get(i).sub(meanOfAllDIM)).elementDiv(standOfAllDIM));
             }
 
-            // reduction
-            for (int i=0;i<numOfSample;i++){ 
-                // to just 64 dim
-                sampledData.add(reduceDim(tempSampledData.get(i), SiftBenchConstants.NUM_DIMENSION));
+            if(DIM_REDUCTION){
+                // reduction
+                for (int i=0;i<numOfSample;i++){ 
+                    // to just 64 dim
+                    sampledData.add(reduceDim(tempSampledData.get(i), SiftBenchConstants.NUM_DIMENSION));
+                }
+            } else {
+                for (int i=0;i<numOfSample;i++){ 
+                    // keep origin dim
+                    sampledData.add(tempSampledData.get(i));
+                }
             }
+            
 
             // random select centroid from sample arraylist
             ArrayList<Integer> centroid_idx = new ArrayList<Integer>();
@@ -226,8 +240,8 @@ public class Cluster {
                     // System.out.println("samples = "+ newCentroid);
                 }
                 // update centroid to new value
-                //do rounding first
-                newCentroid = VectorConstant.rounding(newCentroid, N_DIM);
+                // if(DIM_REDUCTION || NORM_ORIGIN_DIM) do rounding first
+                if(DIM_REDUCTION || NORM_ORIGIN_DIM) newCentroid = VectorConstant.rounding(newCentroid, N_DIM);
                 centroids.set(j, newCentroid.copy());
             }
         }
@@ -414,7 +428,7 @@ public class Cluster {
     public VectorConstant reduceDim (VectorConstant origin, int dimension){
         float[] new_float = new float[(int)dimension/2];
         for (int i = 0;i < (int)dimension/2;i++){
-            new_float[i] = (float) ((float) Math.round(origin.get(i*2) + origin.get(i*2+1) * 1000) / 1000);
+            new_float[i] = (float) ((float) Math.round((origin.get(i*2) + origin.get(i*2+1)) * 1000) / 1000);
         }
         return new VectorConstant(new_float);
     }
@@ -424,5 +438,14 @@ public class Cluster {
         VectorConstant normVec = (VectorConstant)((VectorConstant) origin.sub(meanOfAllDIM)).elementDiv(standOfAllDIM);
         // reduce dim
         return reduceDim(normVec, dimension);
+    }
+
+    public VectorConstant normVector(VectorConstant origin){
+        VectorConstant normVec = (VectorConstant)((VectorConstant) origin.sub(meanOfAllDIM)).elementDiv(standOfAllDIM);
+        float[] new_float = new float[N_DIM];
+        for (int i = 0;i < N_DIM;i++){
+            new_float[i] = (float) ((float) Math.round(normVec.get(i)  * 1000) / 1000);
+        }
+        return new VectorConstant(new_float);
     }
 }

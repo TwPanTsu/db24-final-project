@@ -23,6 +23,8 @@ public class SiftTestbedLoaderParamHelper implements StoredProcedureHelper {
     private static final String CLUSTERS_DDL[] = new String[numOfCluster];
     private static final String MEANSTAND_DDL[] = new String[1];
     
+    // normalize parameter for non-dimension-reduction mode
+    private static final boolean NORM_ORIGIN_DIM = true;
 
     private int numItems;
 
@@ -72,6 +74,10 @@ public class SiftTestbedLoaderParamHelper implements StoredProcedureHelper {
         return DIM_REDUCTION;
     }
 
+    public boolean getNormOri(){
+        return NORM_ORIGIN_DIM;
+    }
+
     @Override
     public void prepareParameters(Object... pars) {
         numItems = (Integer) pars[0];
@@ -84,7 +90,8 @@ public class SiftTestbedLoaderParamHelper implements StoredProcedureHelper {
         for (int i = 0; i < numOfCluster;i++)
             CLUSTERS_DDL[i] = "CREATE TABLE cluster_" + i + " (i_id INT, i_emb VECTOR(" + N_DIM + "))";
         
-        if(DIM_REDUCTION) MEANSTAND_DDL[0] = "CREATE TABLE mean_stand (mean VECTOR(" + SiftBenchConstants.NUM_DIMENSION + "), stand VECTOR(" + SiftBenchConstants.NUM_DIMENSION + "))";
+        if(DIM_REDUCTION || NORM_ORIGIN_DIM) 
+            MEANSTAND_DDL[0] = "CREATE TABLE mean_stand (mean VECTOR(" + SiftBenchConstants.NUM_DIMENSION + "), stand VECTOR(" + SiftBenchConstants.NUM_DIMENSION + "))";
     }
 
     @Override
