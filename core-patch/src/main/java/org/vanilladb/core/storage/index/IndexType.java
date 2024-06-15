@@ -19,7 +19,7 @@ package org.vanilladb.core.storage.index;
  * Supported index types.
  */
 public enum IndexType {
-	HASH, BTREE, LSH, IVF;
+	HASH, BTREE, IVF;
 	
 	public static IndexType fromInteger(int typeVal) {
 		switch (typeVal) {
@@ -28,8 +28,6 @@ public enum IndexType {
 		case 1:
 			return BTREE;
 		case 2:
-			return LSH;
-		case 3:
 			return IVF;
 		}
 		throw new UnsupportedOperationException();
@@ -41,10 +39,8 @@ public enum IndexType {
 			return 0;
 		case BTREE:
 			return 1;
-		case LSH:
-			return 2;
 		case IVF:
-			return 3;
+			return 2;
 		}
 		throw new UnsupportedOperationException();
 	}
