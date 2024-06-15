@@ -652,11 +652,8 @@ public class Parser {
 			} else if (lex.matchKeyword("btree")) {
 				lex.eatKeyword("btree");
 				idxType = IndexType.BTREE;
-			} else if (lex.matchKeyword("lsh")) {
-				lex.eatKeyword("lsh");
-				idxType = IndexType.LSH;
 			} else if (lex.matchKeyword("ivf")) {
-				lex.eatKeyword("ivf");
+				lex.eatKeyword("lsh");
 				idxType = IndexType.IVF;
 			}
 			else

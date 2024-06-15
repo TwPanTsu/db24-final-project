@@ -7,6 +7,7 @@ import org.vanilladb.core.sql.storedprocedure.StoredProcedureHelper;
 public class AnnTestbedLoaderParamHelper implements StoredProcedureHelper {
 
     private static final String TABLES_DDL[] = new String[1];
+    private static final String INDEXES_DDL[] = new String[1];
 
     private int numOfItems, numDimension;
 
@@ -14,6 +15,10 @@ public class AnnTestbedLoaderParamHelper implements StoredProcedureHelper {
         return TABLES_DDL;
     }
 
+    public String[] getIndexSchemas() {
+		return INDEXES_DDL;
+	}
+    
     public int getNumberOfItems() {
         return numOfItems;
     }
