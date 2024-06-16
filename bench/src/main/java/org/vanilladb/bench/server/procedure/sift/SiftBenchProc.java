@@ -25,7 +25,7 @@ public class SiftBenchProc extends StoredProcedure<SiftBenchParamHelper> {
     private static boolean haveCluster = false;
     private static int numOfCluster;
     // const value for top-k nearest centroid
-    private static final int topKNC = 2;
+    private static final int topKNC = 1;
     private DistanceFn distFn = new EuclideanFn("i_emb");
 
     private enum Strategy {

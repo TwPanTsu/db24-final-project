@@ -107,7 +107,7 @@ public class SiftTestbedLoaderProc extends StoredProcedure<SiftTestbedLoaderPara
         SiftTestbedLoaderParamHelper paramHelper = getHelper();
         int numOfCluster = paramHelper.getNumOfCluster();
         Cluster cluster = new Cluster(numOfCluster);
-        cluster.clustering(50);// numOfRound is hyperparameter that can be chamged
+        cluster.clustering(25);// numOfRound is hyperparameter that can be chamged
 
         Transaction tx = getTransaction();
 

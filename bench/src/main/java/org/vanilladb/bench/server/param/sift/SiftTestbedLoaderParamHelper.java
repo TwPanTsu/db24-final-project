@@ -19,7 +19,7 @@ public class SiftTestbedLoaderParamHelper implements StoredProcedureHelper {
 
     // new values
     private static final String CENTROIDS_DDL[] = new String[1];
-    private static final int numOfCluster = 1000; // hyperparameter that can be changed
+    private static final int numOfCluster = 2000; // hyperparameter that can be changed
     private static final String CLUSTERS_DDL[] = new String[numOfCluster];
     private static final String MEANSTAND_DDL[] = new String[1];
     
