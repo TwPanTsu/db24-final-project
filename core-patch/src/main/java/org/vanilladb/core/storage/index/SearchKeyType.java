@@ -17,7 +17,6 @@ package org.vanilladb.core.storage.index;
 
 import java.util.Arrays;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 
 import org.vanilladb.core.sql.Constant;
@@ -74,8 +73,7 @@ public class SearchKeyType {
 			vals[i] = types[i].maxValue();
 		return new SearchKey(vals);
 	}
-	
-	public int findVectorIdx() {
+	public int getVecIdx() {
 		for (int i = 0; i < types.length; i++)
 			if (types[i].getSqlType() == java.sql.Types.ARRAY)
 				return i;

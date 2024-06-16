@@ -9,7 +9,7 @@ public class CosineFn extends DistanceFn {
     }
 
     @Override
-    public double calculateDistance(VectorConstant vec) {
+    protected double calculateDistance(VectorConstant vec) {
 
         double sum = 0;
         double querySum = 0;
