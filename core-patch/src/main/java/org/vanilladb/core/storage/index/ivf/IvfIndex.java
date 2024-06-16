@@ -70,7 +70,7 @@ public class IvfIndex extends Index {
 	private static final int NUM_CLUSTERS;
 	static {
 		NUM_CLUSTERS = CoreProperties.getLoader().getPropertyAsInteger(
-				IvfIndex.class.getName() + ".NUM_CLUSTERS", 32);
+				IvfIndex.class.getName() + ".NUM_CLUSTERS", 100);
 	}
 
 		
