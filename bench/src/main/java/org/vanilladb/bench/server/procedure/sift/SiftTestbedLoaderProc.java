@@ -73,12 +73,12 @@ public class SiftTestbedLoaderProc extends StoredProcedure<SiftTestbedLoaderPara
         for (String sql : paramHelper.getTableSchemas())
             StoredProcedureUtils.executeUpdate(sql, tx);
 
-        // if (logger.isLoggable(Level.INFO))
-        //     logger.info("Creating indexes...");
+        if (logger.isLoggable(Level.INFO))
+           logger.info("Creating indexes...");
 
-        // // Create indexes
-        // for (String sql : paramHelper.getIndexSchemas())
-        //     StoredProcedureUtils.executeUpdate(sql, tx);
+        //Create indexes
+        for (String sql : paramHelper.getIndexSchemas())
+           StoredProcedureUtils.executeUpdate(sql, tx);
         
         if (logger.isLoggable(Level.FINE))
             logger.info("Finish creating schemas.");

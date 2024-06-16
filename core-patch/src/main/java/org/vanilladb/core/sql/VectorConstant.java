@@ -13,7 +13,9 @@ import java.util.*;
  * This would enable vector processing in VanillaCore
  */
 public class VectorConstant extends Constant implements Serializable {
-    private float[] vec;
+    //SIMD
+    //private float[] vec;
+    public float[] vec;
     private Type type;
 
     public static VectorConstant zeros(int dimension) {

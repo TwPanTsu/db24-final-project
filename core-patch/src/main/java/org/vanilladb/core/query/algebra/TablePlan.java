@@ -50,6 +50,20 @@ public class TablePlan implements Plan {
 	}
 
 	/**
+     * Creates a TablePlan using the specified TableInfo and Transaction.
+     * 
+     * @param ti
+     *            the table info
+     * @param tx
+     *            the calling transaction
+     */
+    public TablePlan(TableInfo ti, Transaction tx) {
+        this.tx = tx;
+        this.ti = ti;
+        this.si = VanillaDb.statMgr().getTableStatInfo(ti, tx);
+    }
+
+	/**
 	 * Creates a table scan for this query.
 	 * 
 	 * @see Plan#open()
