@@ -15,13 +15,14 @@
  *******************************************************************************/
 package org.vanilladb.core.storage.index.ivfflat;
 
-
 import java.util.ArrayList;
 import java.util.List;
-
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.logging.Logger;
 
-
+import org.vanilladb.core.server.VanillaDb;
+import org.vanilladb.core.sql.IntegerConstant;
 import org.vanilladb.core.sql.VectorConstant;
 import org.vanilladb.core.sql.distfn.DistanceFn;
 import org.vanilladb.core.sql.distfn.EuclideanFn;
@@ -38,7 +39,6 @@ import org.vanilladb.core.storage.tx.Transaction;
 import org.vanilladb.core.storage.tx.concurrency.ConcurrencyMgr;
 import org.vanilladb.core.util.CoreProperties;
 
-
 /**
  * A static hash implementation of {@link Index}. A fixed number of buckets is
  * allocated, and each bucket is implemented as a file of index records.
@@ -51,9 +51,10 @@ public class IVFFlatIndex extends Index {
      */
     private static Logger logger = Logger.getLogger(IVFFlatIndex.class.getName());
     // private static final String SCHEMA_CLUSTER_ID = "cid", SCHEMA_KEY = "key";
-    // private static final String SCHEMA_RID_BLOCK = "block", SCHEMA_RID_ID = "id"; // block and id to the original table
-    // private static final String SIFT_TABLE = "sift";
-    // private static final String SIFT_EMB = "i_emb";
+    // private static final String SCHEMA_RID_BLOCK = "block", SCHEMA_RID_ID = "id";
+    // // block and id to the original table
+    private static final String SIFT_TABLE = "sift";
+    private static final String SIFT_EMB = "i_emb";
 
     public static final int NUM_CLUSTERS_MAX;
     public static final int NUM_CLUSTERS_SIZE;
@@ -88,17 +89,25 @@ public class IVFFlatIndex extends Index {
     // true: bench, false: load testbed
     private final boolean isBench = true;
 
+    private static ReadWriteLock rwLock = new ReentrantReadWriteLock(true);;
+
     public IVFFlatIndex(IndexInfo ii, SearchKeyType keyType, Transaction tx) {
         super(ii, keyType, tx);
         this.ccMgr = tx.concurrencyMgr();
         this.ii = ii;
+        // System.out.println("Init");
 
         // this.ti = getIndexUsedTableInfo(ii.indexName(), schema(keyType));
-        if (isBench)
+        rwLock.writeLock().lock();
+        if (isBench && listCluster.isEmpty()) {
+            System.out.println("Loat cluster");
             for (int i = 0; i < NUM_CLUSTERS_MAX; i++) {
                 Cluster cluster = new Cluster(i, tx);
                 listCluster.add(cluster);
             }
+            System.out.println("Loat cluster complete");
+        }
+        rwLock.writeLock().unlock();
 
     }
 
@@ -120,13 +129,13 @@ public class IVFFlatIndex extends Index {
      * @return the schema of the index records
      */
     // private static Schema schema(SearchKeyType keyType) {
-    //     Schema sch = new Schema();
-    //     // for (int i = 0; i < keyType.length(); i++)
-    //     sch.addField(SCHEMA_KEY, keyType.get(0));
-    //     sch.addField(SCHEMA_RID_BLOCK, BIGINT);
-    //     sch.addField(SCHEMA_RID_ID, INTEGER);
-    //     sch.addField(SCHEMA_CLUSTER_ID, INTEGER);
-    //     return sch;
+    // Schema sch = new Schema();
+    // // for (int i = 0; i < keyType.length(); i++)
+    // sch.addField(SCHEMA_KEY, keyType.get(0));
+    // sch.addField(SCHEMA_RID_BLOCK, BIGINT);
+    // sch.addField(SCHEMA_RID_ID, INTEGER);
+    // sch.addField(SCHEMA_CLUSTER_ID, INTEGER);
+    // return sch;
     // }
 
     private DistanceFn distFn;
@@ -157,7 +166,7 @@ public class IVFFlatIndex extends Index {
         targetCluster = 0;
         Double distance = Double.MAX_VALUE;
         for (int i = 0; i < NUM_CLUSTERS_MAX; i++) {
-            VectorConstant centroid = listCluster.get(i).getCentroid();
+            VectorConstant centroid = listCluster.get(i).getCentroid().VectorConst;
             double curDistance = distFn.distance(centroid);
             if (curDistance < distance) {
                 distance = curDistance;
@@ -228,9 +237,9 @@ public class IVFFlatIndex extends Index {
             int targetCluster = 0;
             Double distance = Double.MAX_VALUE;
             for (int i = 0; i < clusterNum; i++) {
-                if (listCluster.get(i).size() >= NUM_CLUSTERS_SIZE)
+                if (listCluster.get(i).size() >= NUM_CLUSTERS_SIZE && !isBench)
                     continue;
-                VectorConstant centroid = listCluster.get(i).getCentroid();
+                VectorConstant centroid = listCluster.get(i).getCentroid().VectorConst;
                 EuclideanFn distFn = new EuclideanFn(centroid);
                 double curDistance = distFn.distance(vec);
                 if (curDistance < distance) {
@@ -251,23 +260,33 @@ public class IVFFlatIndex extends Index {
     public void delete(SearchKey key, RecordId dataRecordId, boolean doLogicalLogging) {
         throw new UnsupportedOperationException("Unimplemented method 'IVFFlatIndex::delete'");
         // search the position
-        // beforeFirst(new SearchRange(key));
-
-        // // log the logical operation starts
-        // if (doLogicalLogging)
-        // tx.recoveryMgr().logLogicalStart();
-
-        // // delete the specified entry
-        // while (next())
-        // if (getDataRecordId().equals(dataRecordId)) {
-        // rf.delete();
-        // return;
+        // beforeFirst(new EuclideanFn((VectorConstant) key.get(0)));
+        // System.out.println("Delete id: " + dataRecordId.id());
+        // boolean isDeleted = false;
+        // TableInfo ti_sift = VanillaDb.catalogMgr().getTableInfo(SIFT_TABLE, tx);
+        // RecordFile rf_sift = ti_sift.open(tx, false);
+        // rf_sift.beforeFirst();
+        // while (rf_sift.next()) {
+        // IntegerConstant rid = (IntegerConstant) rf_sift.getVal("i_id");
+        // if((Integer)rid.asJavaVal() == dataRecordId.id()){
+        // rf_sift.delete();
+        // break;
         // }
-
-        // // log the logical operation ends
-        // if (doLogicalLogging)
-        // tx.recoveryMgr().logIndexDeletionEnd(ii.indexName(), key,
-        // dataRecordId.block().number(), dataRecordId.id());
+        // }
+        // rf_sift.close();
+        // for (int i = 0; i < clusterNum; i++) {
+        // for (int j = 0; j < listCluster.get(i).size(); j++) {
+        // if (dataRecordId.id() == listCluster.get(i).getVecs().get(j).rid) {
+        // listCluster.get(i).getVecs().remove(j);
+        // VectorPair centroid = listCluster.get(i).getCentroid();
+        // if (dataRecordId.id() == centroid.rid && listCluster.get(i).size() > 0)
+        // listCluster.get(i).setCentroid(listCluster.get(i).getVecs().get(0));
+        // isDeleted = true;
+        // }
+        // }
+        // if (isDeleted)
+        // break;
+        // }
     }
 
     /**

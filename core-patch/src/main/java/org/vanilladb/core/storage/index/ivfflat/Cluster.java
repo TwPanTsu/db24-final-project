@@ -74,12 +74,12 @@ public class Cluster {
         return vecs.size();
     }
 
-    public VectorConstant getCentroid() {
-        return centroid.VectorConst;
+    public VectorPair getCentroid() {
+        return centroid;
     }
 
-    public void setCentroid(VectorConstant centroid, RecordId rid) {
-        this.centroid = new VectorPair(centroid, rid.id(),rid.block().number());
+    public void setCentroid(VectorPair vecPir) {
+        this.centroid = vecPir;
     }
 
     public List<VectorPair> getVecs() {
