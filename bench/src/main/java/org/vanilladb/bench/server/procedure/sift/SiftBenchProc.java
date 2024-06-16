@@ -29,7 +29,7 @@ public class SiftBenchProc extends StoredProcedure<SiftBenchParamHelper> {
     private DistanceFn distFn = new EuclideanFn("i_emb");
 
     private enum Strategy {
-        NEAREST_CENTROID, TOP_K_NEAREST_CENTROID, TKNC_CONCURRENT
+        NEAREST_CENTROID, TOP_K_NEAREST_CENTROID, TKNC_CONCURRENT, NEAREST_CENTROID_KD_TREE
     }
 
     private Strategy strategy = Strategy.NEAREST_CENTROID;
@@ -154,7 +154,7 @@ public class SiftBenchProc extends StoredProcedure<SiftBenchParamHelper> {
             paramHelper.setNearestNeighbors(nearestNeighbors);
         }
         /************************************************************************ */
-        else {
+        else  if (strategy == Strategy.TKNC_CONCURRENT){
             // ArrayList<Integer> nearestCentroidIDs = cluster.getTopKNearestCentroidId(query, topKNC);
             ArrayList<Integer> nearestCentroidIDs =
             cluster.getTopKNearestCentroidIdConcurrently(query, topKNC);
@@ -222,6 +222,32 @@ public class SiftBenchProc extends StoredProcedure<SiftBenchParamHelper> {
             Set<Integer> nearestNeighbors = pq.stream().map(CustomPair::getSecond).collect(HashSet::new, HashSet::add,
                     HashSet::addAll);
             paramHelper.setNearestNeighbors(nearestNeighbors);
+        } else {
+            // strategy 4: find nearest centroid, then find nearest neighbor from that
+            // cluster
+            // int nearestCentroidID = cluster.getNearestCentroidIdKDTree(query);
+            // // System.out.println("nearestCentroidId = " + nearestCentroidID);
+            // nnQuery = "SELECT i_id FROM cluster_" + nearestCentroidID +
+            //         " ORDER BY " + paramHelper.getEmbeddingField() + " <EUC> " + query.toString() + " LIMIT "
+            //         + paramHelper.getK();
+            // // Execute nearest neighbor search
+            // Scan nearestNeighborScan = StoredProcedureUtils.executeQuery(nnQuery, tx);
+
+            // nearestNeighborScan.beforeFirst();
+
+            // Set<Integer> nearestNeighbors = new HashSet<>();
+
+            // int count = 0;
+            // while (nearestNeighborScan.next()) {
+            //     nearestNeighbors.add((Integer) nearestNeighborScan.getVal("i_id").asJavaVal());
+            //     count++;
+            // }
+
+            // nearestNeighborScan.close();
+
+            // if (count == 0)
+            //     throw new RuntimeException("Nearest neighbor query execution failed for " + query.toString());
+            // paramHelper.setNearestNeighbors(nearestNeighbors);
         }
     }
 
