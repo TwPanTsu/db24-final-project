@@ -25,6 +25,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Logger;
 
 import org.vanilladb.core.server.VanillaDb;
 import org.vanilladb.core.sql.IntegerConstant;
@@ -45,7 +46,7 @@ public class TableMgr {
 	 * Name of the table catalog.
 	 */
 	public static final String TCAT = "tblcat";
-
+	private static Logger logger = Logger.getLogger(VanillaDb.class.getName());
 	/**
 	 * A field name of the table catalog.
 	 */
@@ -123,10 +124,11 @@ public class TableMgr {
 			formatFileHeader(tblName, tx);
 		// Optimization: store the ti
 		tiMap.put(tblName, new TableInfo(tblName, sch));
-
 		// insert one record into tblcat
 		RecordFile tcatfile = tcatInfo.open(tx, true);
+		logger.info("create3");
 		tcatfile.insert();
+		logger.info("create4");
 		tcatfile.setVal(TCAT_TBLNAME, new VarcharConstant(tblName));
 		tcatfile.close();
 

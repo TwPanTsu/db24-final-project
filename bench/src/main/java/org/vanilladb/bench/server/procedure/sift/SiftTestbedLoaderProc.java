@@ -73,6 +73,8 @@ public class SiftTestbedLoaderProc extends StoredProcedure<SiftTestbedLoaderPara
         for (String sql : paramHelper.getTableSchemas())
             StoredProcedureUtils.executeUpdate(sql, tx);
 
+        
+
         // if (logger.isLoggable(Level.INFO))
         //     logger.info("Creating indexes...");
 
@@ -98,6 +100,7 @@ public class SiftTestbedLoaderProc extends StoredProcedure<SiftTestbedLoaderPara
                 String sql = "INSERT INTO sift(i_id, i_emb) VALUES (" + iid + ", [" + vectorString + "])";
                 // logger.info(sql);
                 iid++;
+                //logger.info("Current populate: " + iid);
                 StoredProcedureUtils.executeUpdate(sql, tx);
             }
         } catch (IOException e) {

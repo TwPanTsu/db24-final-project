@@ -15,8 +15,11 @@
  *******************************************************************************/
 package org.vanilladb.core.query.planner;
 
+import java.util.logging.Logger;
+
 import org.vanilladb.core.query.algebra.Plan;
 import org.vanilladb.core.query.parse.*;
+import org.vanilladb.core.server.VanillaDb;
 import org.vanilladb.core.storage.tx.Transaction;
 
 /**
@@ -27,6 +30,7 @@ import org.vanilladb.core.storage.tx.Transaction;
 public class Planner {
 	private QueryPlanner qPlanner;
 	private UpdatePlanner uPlanner;
+	private static Logger logger = Logger.getLogger(VanillaDb.class.getName());
 
 	public Planner(QueryPlanner qPlanner, UpdatePlanner uPlanner) {
 		this.qPlanner = qPlanner;
@@ -66,10 +70,10 @@ public class Planner {
 		Parser parser = new Parser(cmd);
 		Object obj = parser.updateCommand();
 		if (obj.getClass().equals(InsertData.class)) {
-			Verifier.verifyInsertData((InsertData) obj, tx);
+			//Verifier.verifyInsertData((InsertData) obj, tx);
 			return uPlanner.executeInsert((InsertData) obj, tx);
 		} else if (obj.getClass().equals(DeleteData.class)) {
-			Verifier.verifyDeleteData((DeleteData) obj, tx);
+			//Verifier.verifyDeleteData((DeleteData) obj, tx);
 			return uPlanner.executeDelete((DeleteData) obj, tx);
 		} else if (obj.getClass().equals(ModifyData.class)) {
 			Verifier.verifyModifyData((ModifyData) obj, tx);
