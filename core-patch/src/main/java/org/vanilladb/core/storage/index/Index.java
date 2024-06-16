@@ -53,7 +53,7 @@ public abstract class Index {
 			return HashIndex.searchCost(keyType, totRecs, matchRecs);
 		else if (idxType == IndexType.BTREE)
 			return BTreeIndex.searchCost(keyType, totRecs, matchRecs);
-		else if(idxType == IndexType.IVFFLAT)
+		else if(idxType == IndexType.IVF)
 			return IVFIndex.searchCost(keyType, totRecs, matchRecs);
 		else
 			throw new IllegalArgumentException("unsupported index type");
@@ -64,7 +64,7 @@ public abstract class Index {
 			return new HashIndex(ii, keyType, tx);
 		else if (ii.indexType() == IndexType.BTREE)
 			return new BTreeIndex(ii, keyType, tx);
-		else if (ii.indexType() == IndexType.IVFFLAT)
+		else if (ii.indexType() == IndexType.IVF)
 		 	return new IVFIndex(ii, keyType, tx);
 		else
 			throw new IllegalArgumentException("unsupported index type");
