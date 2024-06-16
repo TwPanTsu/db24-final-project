@@ -8,6 +8,9 @@ import org.vanilladb.core.util.ByteHelper;
 
 import java.util.*;
 
+import org.vanilladb.core.sql.distfn.DistanceFn;
+import org.vanilladb.core.sql.distfn.EuclideanFn;
+
 /**
  * Vector constant stores multiple float32 values as a constant
  * This would enable vector processing in VanillaCore
@@ -15,6 +18,11 @@ import java.util.*;
 public class VectorConstant extends Constant implements Serializable {
     private float[] vec;
     private Type type;
+
+    public double calcDistance(VectorConstant target, DistanceFn distanceFn) {
+        assert target != null: "Target vector for calculating vector is missing.";
+        return distanceFn.distance(this);
+    }
 
     public static VectorConstant zeros(int dimension) {
         float[] vec = new float[dimension];

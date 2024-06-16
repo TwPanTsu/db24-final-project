@@ -49,6 +49,7 @@ public class SearchKey implements Comparable<SearchKey> {
 	 */
 	public SearchKey(List<String> indexedFields, Map<String, Constant> fldValMap) {
 		vals = new Constant[indexedFields.size()];
+		distanceFn = new EuclideanFn("Vector Euclidean Distance");
 		Iterator<String> fldNameIter = indexedFields.iterator();
 		String fldName;
 
@@ -62,6 +63,7 @@ public class SearchKey implements Comparable<SearchKey> {
 
 	public SearchKey(Constant... constants) {
 		vals = Arrays.copyOf(constants, constants.length);
+		distanceFn = new EuclideanFn("Vector Euclidean Distance");
 	}
 	
 	public int length() {

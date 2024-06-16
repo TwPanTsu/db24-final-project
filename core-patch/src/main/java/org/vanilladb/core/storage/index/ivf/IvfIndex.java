@@ -25,7 +25,7 @@ import org.vanilladb.core.sql.Constant;
 import org.vanilladb.core.sql.IntegerConstant;
 import org.vanilladb.core.sql.Schema;
 import org.vanilladb.core.sql.VectorConstant;
-
+import org.vanilladb.core.storage.buffer.Buffer;
 import org.vanilladb.core.storage.file.BlockId;
 import org.vanilladb.core.storage.index.Index;
 import org.vanilladb.core.storage.index.SearchKey;
@@ -35,6 +35,7 @@ import org.vanilladb.core.storage.metadata.TableInfo;
 import org.vanilladb.core.storage.metadata.index.IndexInfo;
 import org.vanilladb.core.storage.record.RecordFile;
 import org.vanilladb.core.storage.record.RecordId;
+import org.vanilladb.core.storage.record.RecordPage;
 import org.vanilladb.core.storage.tx.Transaction;
 import org.vanilladb.core.util.CoreProperties;
 
@@ -44,8 +45,7 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 
 /**
- * A static hash implementation of {@link Index}. A fixed number of buckets is
- * allocated, and each bucket is implemented as a file of index records.
+ * A IVFFlat index implementation of {@link Index}.
  */
 public class IVFIndex extends Index {
 	/**
@@ -62,6 +62,7 @@ public class IVFIndex extends Index {
     }
 
 	public static long searchCost(SearchKeyType keyType, long totRecs, long matchRecs) {
+		// Dummy
 		return 0;
 	}
 	
@@ -89,6 +90,10 @@ public class IVFIndex extends Index {
 	private SearchKey searchKey;
 	private RecordFile rf;
 	private boolean isBeforeFirsted;
+
+	private int dimension;
+	private RecordFile centroidRf;
+	private SortedMap<Double, Integer> centroidSearchResults;
 
 	/**
 	 * Opens a IVF index for the specified index.
@@ -134,9 +139,9 @@ public class IVFIndex extends Index {
 
 		this.searchKey = searchRange.asSearchKey();
         
-		int bucket = searchKey.hashCode() % NUM_CLUSTERS;
-		String tblname = ii.indexName() + bucket;
-		TableInfo ti = new TableInfo(tblname, schema(keyType));
+		// int bucket = searchKey.hashCode() % NUM_CLUSTERS;
+		// String tblname = ii.indexName() + bucket;
+		// TableInfo ti = new TableInfo(tblname, schema(keyType));
 
 		// the underlying record file should not perform logging
 		this.rf = ti.open(tx, false);
@@ -249,10 +254,10 @@ public class IVFIndex extends Index {
 		return VanillaDb.fileMgr().size(fileName);
 	}
 	
-	private SearchKey getKey() {
+	private SearchKey getKey(RecordFile recordFile) {
 		Constant[] vals = new Constant[keyType.length()];
 		for (int i = 0; i < vals.length; i++)
-			vals[i] = rf.getVal(keyFieldName(i));
+			vals[i] = recordFile.getVal(keyFieldName(i));
 		return new SearchKey(vals);
 	}
 }
