@@ -1,7 +1,8 @@
 package org.vanilladb.core.query.algebra.vector;
 
 import org.vanilladb.core.query.algebra.Plan;
-import org.vanilladb.core.query.algebra.materialize.SortPlan;
+import org.vanilladb.core.query.algebra.SelectPlan;
+import org.vanilladb.core.query.algebra.index.IndexSelectPlan;
 import org.vanilladb.core.query.algebra.Scan;
 import org.vanilladb.core.sql.distfn.DistanceFn;
 import org.vanilladb.core.sql.Schema;
@@ -10,15 +11,21 @@ import org.vanilladb.core.storage.tx.Transaction;
 
 public class NearestNeighborPlan implements Plan {
     private Plan child;
+    private DistanceFn distFn;
+    private Transaction tx;
 
     public NearestNeighborPlan(Plan p, DistanceFn distFn, Transaction tx) {
-        this.child = new SortPlan(p, distFn, tx);
+        if (!(p instanceof SelectPlan) && ! (p instanceof IndexSelectPlan))
+            throw new IllegalArgumentException();
+        this.child = p;
+        this.tx = tx;
+        this.distFn = distFn;
     }
 
     @Override
     public Scan open() {
         Scan s = child.open();
-        return new NearestNeighborScan(s);
+        return new NearestNeighborScan(s, distFn, tx);
     }
 
     @Override

@@ -9,6 +9,10 @@ import java.util.logging.Logger;
 import org.vanilladb.bench.benchmarks.sift.SiftBenchConstants;
 import org.vanilladb.bench.server.param.sift.SiftTestbedLoaderParamHelper;
 import org.vanilladb.bench.server.procedure.StoredProcedureUtils;
+import org.vanilladb.core.query.parse.DropTableData;
+import org.vanilladb.core.query.planner.BadSemanticException;
+import org.vanilladb.core.query.planner.Verifier;
+import org.vanilladb.core.query.parse.Parser;
 import org.vanilladb.core.server.VanillaDb;
 import org.vanilladb.core.sql.storedprocedure.StoredProcedure;
 import org.vanilladb.core.storage.tx.Transaction;
@@ -37,7 +41,7 @@ public class SiftTestbedLoaderProc extends StoredProcedure<SiftTestbedLoaderPara
         generateItems(0);
 
         // if (logger.isLoggable(Level.INFO))
-        //     logger.info("Training IVF index...");
+        //     logger.info("Training IVFFlat index...");
 
         // StoredProcedureUtils.executeTrainIndex(getHelper().getTableName(), getHelper().getIdxFields(), 
         //     getHelper().getIdxName(), getTransaction());
@@ -59,8 +63,18 @@ public class SiftTestbedLoaderProc extends StoredProcedure<SiftTestbedLoaderPara
     }
 
     private void dropOldData() {
-        if (logger.isLoggable(Level.WARNING))
-            logger.warning("Dropping is skipped.");
+        Transaction tx = getTransaction();
+        String sql = "DROP TABLE items";
+        Parser parser = new Parser(sql);
+        Object obj = parser.updateCommand();
+        try {
+            Verifier.verifyDropTableData((DropTableData) obj, tx);
+            StoredProcedureUtils.executeUpdate(sql, tx);
+            logger.info("Table is dropped.");
+        }
+        catch (BadSemanticException be) {
+            logger.info("Table does not exist. Drop query is ignored.");
+        }
     }
 
     private void createSchemas() {
@@ -73,12 +87,12 @@ public class SiftTestbedLoaderProc extends StoredProcedure<SiftTestbedLoaderPara
         for (String sql : paramHelper.getTableSchemas())
             StoredProcedureUtils.executeUpdate(sql, tx);
 
-        // if (logger.isLoggable(Level.INFO))
-        //     logger.info("Creating indexes...");
+        if (logger.isLoggable(Level.INFO))
+            logger.info("Creating indexes...");
 
-        // // Create indexes
-        // for (String sql : paramHelper.getIndexSchemas())
-        //     StoredProcedureUtils.executeUpdate(sql, tx);
+        // Create indexes
+        for (String sql : paramHelper.getIndexSchemas())
+            StoredProcedureUtils.executeUpdate(sql, tx);
         
         if (logger.isLoggable(Level.FINE))
             logger.info("Finish creating schemas.");

@@ -175,7 +175,7 @@ class TablePlanner {
 	 * that help the identification: e.g., "F < C", not "F - C < 0".
 	 */
 	private Plan makeIndexSelectPlan() {
-		return IndexSelector.selectByBestMatchedIndex(tblName, tp, pred, tx);
+		return IndexSelector.selectByBestMatchedIndex(tblName, tp, pred, embField, tx);
 	}
 
 	/**
