@@ -78,9 +78,9 @@ public class RecordComparator implements Comparator<Record> {
 
 			if (distFn != null && fld.equals(distFn.fieldName())) {
 				// Compare by distance
-				double dist1 = distFn.distance((VectorConstant) rec1.getVal(fld));
-				double dist2 = distFn.distance((VectorConstant) rec2.getVal(fld));
-				int result = Double.compare(dist1, dist2);
+				int dist1 = distFn.distance((VectorConstant) rec1.getVal(fld));
+				int dist2 = distFn.distance((VectorConstant) rec2.getVal(fld));
+				int result = Integer.compare(dist1, dist2);
 				if (result != 0)
 					return dir == DIR_ASC ? result : -result;
 				continue;

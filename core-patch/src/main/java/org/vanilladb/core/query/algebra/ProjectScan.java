@@ -40,6 +40,8 @@ public class ProjectScan implements Scan {
 	public ProjectScan(Scan s, Collection<String> fieldList) {
 		this.s = s;
 		this.fieldList = fieldList;
+		for (String fldName : fieldList)
+			System.out.println("ProjectScan: " + fldName);
 	}
 
 	@Override

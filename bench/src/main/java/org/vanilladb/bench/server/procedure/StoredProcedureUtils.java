@@ -47,6 +47,10 @@ public class StoredProcedureUtils {
 		return VanillaDb.newPlanner().executeUpdate(sql, tx);
 	}
 
+	public static int executeLoad(String sql, Transaction tx) {
+		return VanillaDb.newPlanner().executeLoad(sql, tx);
+	}
+
 	static class MapRecord implements Record{
 
 		Map<String, Constant> fldVals = new HashMap<>();
@@ -140,5 +144,9 @@ public class StoredProcedureUtils {
 
 	public static int executeInsert(InsertData sql, Transaction tx) {
 		return VanillaDb.newPlanner().executeInsert(sql, tx);
+	}
+
+	public static void executeTrainIndex(String idxName, Transaction tx) {
+		VanillaDb.newPlanner().executeTrainIndex(idxName, tx);
 	}
 }

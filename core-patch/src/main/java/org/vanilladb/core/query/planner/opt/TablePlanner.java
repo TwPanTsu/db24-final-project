@@ -115,6 +115,7 @@ class TablePlanner {
 	 */
 	public Plan makeSelectPlan() {
 		Plan p = makeIndexSelectPlan();
+		// Plan p = new IVFIndexSelectPlan(tx);
 		if (p == null)
 			p = tp;
 		p =  addSelectPredicate(p);

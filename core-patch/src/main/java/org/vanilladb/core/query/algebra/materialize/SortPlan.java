@@ -115,6 +115,7 @@ public class SortPlan implements Plan {
 		if (runs.size() == 0)
 			return src;
 		src.close();
+		// merge the sorted tempTable and sort the merged tempTable, until there exist only 2 or 1 tempTable
 		while (runs.size() > 2)
 			runs = doAMergeIteration(runs);
 		return new SortScan(runs, comp, toBeFreed);
@@ -161,6 +162,8 @@ public class SortPlan implements Plan {
 		return p.recordsOutput();
 	}
 
+	// this function split source scan into multiple tempTable, each contain a block of the source scan
+	// each tempTable is sorted, return the list of tempTable
 	private List<TempTable> splitIntoRuns(Scan src) {
 		// List<TempRecordPage> toBeFreed = new ArrayList<TempRecordPage>();
 
@@ -192,10 +195,13 @@ public class SortPlan implements Plan {
 		int flag;
 
 		while (true) {
+			// move data into trp
 			while ((flag = trp.insertFromScan(src)) > 0)
 				;
+			// sort trp
 			trp.sortbyselection(this.sortFlds, this.sortDirs, this.comp);
 			trp.moveToPageHead();
+			// copy the sorted data into scan to store
 			while (trp.copyToScan(currentscan))
 				;
 			// trp.runAllSlot();
@@ -224,6 +230,7 @@ public class SortPlan implements Plan {
 		return temps;
 	}
 
+	// merge serveral tempTable, and return the list of sorted tempTable
 	private List<TempTable> doAMergeIteration(List<TempTable> runs) {
 		List<TempTable> result = new ArrayList<TempTable>();
 		int numofbuf = BufferNeeds.bestRoot(runs.size(),tx);

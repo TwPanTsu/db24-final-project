@@ -15,7 +15,7 @@ public class SiftBenchProc extends StoredProcedure<SiftBenchParamHelper> {
     public SiftBenchProc() {
         super(new SiftBenchParamHelper());
     }
-
+    
     @Override
     protected void executeSql() {
         SiftBenchParamHelper paramHelper = getHelper();
@@ -35,6 +35,7 @@ public class SiftBenchProc extends StoredProcedure<SiftBenchParamHelper> {
         int count = 0;
         while (nearestNeighborScan.next()) {
             nearestNeighbors.add((Integer) nearestNeighborScan.getVal("i_id").asJavaVal());
+            // System.out.println("Nearest neighbor: " + nearestNeighborScan.getVal("i_id").asJavaVal());
             count++;
         }
 

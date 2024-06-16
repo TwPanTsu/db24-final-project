@@ -28,7 +28,7 @@ public class VectorConstant extends Constant implements Serializable {
         float[] vec = new float[dimension];
         Random rvg = new Random();
         for (int i = 0; i < dimension; i++) {
-            vec[i] = Math.round((float) rvg.nextGaussian(mean, std) * 100) / 100.0f;
+            vec[i] =0.0f;
         }
         return new VectorConstant(vec);
     }
@@ -84,6 +84,14 @@ public class VectorConstant extends Constant implements Serializable {
         for (int i = 0; i < split.length; i++) {
             vec[i] = Float.valueOf(split[i]);
         }
+    }
+
+    public int[] intVec() {
+        int[] intVec = new int[vec.length];
+        for (int i = 0; i < vec.length; i++) {
+            intVec[i] = (int) vec[i];
+        }
+        return intVec;
     }
 
     /**

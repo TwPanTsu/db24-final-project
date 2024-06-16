@@ -127,4 +127,13 @@ public class BasicUpdatePlanner implements UpdatePlanner {
 		VanillaDb.catalogMgr().dropIndex(data.indexName(), tx);
 		return 0;
 	}
+
+	@Override
+	public void executeTrainIndex(String idxName, Transaction tx) {
+	}
+
+	@Override
+	public int executeLoad(InsertData data, Transaction tx) {
+		return 0;
+	}
 }

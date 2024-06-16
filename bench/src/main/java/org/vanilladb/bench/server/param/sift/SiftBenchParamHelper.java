@@ -1,7 +1,7 @@
 package org.vanilladb.bench.server.param.sift;
 
-import java.util.Set;
 import java.util.ArrayList;
+import java.util.Set;
 
 import org.vanilladb.core.sql.IntegerConstant;
 import org.vanilladb.core.sql.Schema;

@@ -41,7 +41,7 @@ public class SortScan implements Scan {
 	 * then s2 will be null and hasMore2 will be false.
 	 * 
 	 * @param runs
-	 *            the list of runs
+	 *            the list of runs (size of 2 or 1 tempTable)
 	 * @param comp
 	 *            the record comparator
 	 */
@@ -49,6 +49,7 @@ public class SortScan implements Scan {
 		this.toBeFreed = toBeFreed;
 		this.comp = comp;
 		s1 = (UpdateScan) runs.get(0).open();
+		// check the condition because runs may contain only 1 tempTable
 		if (runs.size() > 1)
 			s2 = (UpdateScan) runs.get(1).open();
 	}
