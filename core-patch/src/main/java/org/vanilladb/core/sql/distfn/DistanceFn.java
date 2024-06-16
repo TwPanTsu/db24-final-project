@@ -29,7 +29,7 @@ public abstract class DistanceFn {
         return calculateDistance(vec);
     }
 
-    protected abstract double calculateDistance(VectorConstant vec);
+    public abstract double calculateDistance(VectorConstant vec);
 
     public String fieldName() {
         return fieldName;

@@ -19,14 +19,15 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.sql.Types;
+import java.sql.Types.*;
+
 
 import org.vanilladb.core.sql.Constant;
 import org.vanilladb.core.sql.VectorConstant;
+import org.vanilladb.core.sql.distfn.CosineFn;
 import org.vanilladb.core.sql.distfn.DistanceFn;
 import org.vanilladb.core.sql.distfn.EuclideanFn;
-
-import static org.vanilladb.core.sql.Type.VECTOR;
-
 /**
  * A SearchKey represents an array of constants for a list of indexed fields.
  */
@@ -35,7 +36,8 @@ public class SearchKey implements Comparable<SearchKey> {
 	private Constant[] vals;
 	private boolean hasHashCode;
 	private int hashCode;
-	private DistanceFn distanceFn;
+	private DistanceFn distFn;
+	private boolean isQueriedDistFn;
 
 	/**
 	 * Constructs from the given values for the specified field names.
@@ -49,7 +51,6 @@ public class SearchKey implements Comparable<SearchKey> {
 	 */
 	public SearchKey(List<String> indexedFields, Map<String, Constant> fldValMap) {
 		vals = new Constant[indexedFields.size()];
-		distanceFn = new EuclideanFn("Vector Euclidean Distance");
 		Iterator<String> fldNameIter = indexedFields.iterator();
 		String fldName;
 
@@ -59,11 +60,15 @@ public class SearchKey implements Comparable<SearchKey> {
 			if (vals[i] == null)
 				throw new NullPointerException("there is no value for '" + fldName + "'");
 		}
+		
+		distFn = new EuclideanFn("dummy");
+		isQueriedDistFn = false;
 	}
 
 	public SearchKey(Constant... constants) {
 		vals = Arrays.copyOf(constants, constants.length);
-		distanceFn = new EuclideanFn("Vector Euclidean Distance");
+		distFn = new EuclideanFn("dummy");
+		isQueriedDistFn = false;
 	}
 	
 	public int length() {
@@ -135,4 +140,27 @@ public class SearchKey implements Comparable<SearchKey> {
 		}
 		return 0;
 	}
+	
+	// public double vectorDistance(SearchKey targetKey) {
+	// 	// It will not compare the key without the same length
+	// 	if (this.vals.length != targetKey.vals.length)
+	// 		throw new IllegalArgumentException("The compared key does not have the same length");
+		
+	// 	// Check if VectorConstant is available on the key
+		
+	// 	VectorConstant lhs = null, rhs = null;
+	// 	for(int i = 0; i < this.vals.length; i++) {
+	// 		if (this.vals[i].getType().getSqlType() == Types.ARRAY) lhs = (VectorConstant) this.vals[i];
+	// 		if (targetKey.vals[i].getType().getSqlType() == Types.ARRAY) rhs = (VectorConstant) targetKey.vals[i];
+	// 	}
+		
+	// 	if (lhs == null && rhs == null) throw new IllegalArgumentException("Both compared key does not have VectorConstant field");
+	// 	if (lhs == null) throw new IllegalArgumentException("The left key does not have VectorConstant field");
+
+	// 	if (rhs == null) throw new IllegalArgumentException("The right key does not have VectorConstant field");
+		
+	// 	// Query the Vector into 
+	// 	this.distFn.setQueryVector(lhs);
+	// 	return this.distFn.distance(rhs);
+	// }
 }

@@ -14,7 +14,7 @@ public class EuclideanFn extends DistanceFn {
     static final VectorSpecies<Float> SPECIES = FloatVector.SPECIES_256;
     
     @Override
-    protected double calculateDistance(VectorConstant vec) {
+    public double calculateDistance(VectorConstant vec) {
 
         double sum = 0;
         float[] a = vec.asJavaVal();
