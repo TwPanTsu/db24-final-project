@@ -15,20 +15,23 @@ public class EuclideanFn extends DistanceFn {
         VectorSpecies<Float> species = FloatVector.SPECIES_256;
         FloatVector result = FloatVector.zero(species);
         float[] resultArray = new float[vec.dimension()];
+
         for (int i = 0; i < vec.dimension(); i += species.length()) {
             FloatVector a = FloatVector.fromArray(species, query.asJavaVal(), i);
             FloatVector b = FloatVector.fromArray(species, vec.asJavaVal(), i);
             FloatVector diff = a.sub(b);
-            result = diff.mul(diff);
-            result.intoArray(resultArray, i);
+            result = result.add(diff.mul(diff));
         }
 
+        result.intoArray(resultArray, 0);
+
         double sum = 0;
-        for (int i = 0; i <  vec.dimension(); i++) {
+        for (int i = 0; i < vec.dimension(); i++) {
             sum += resultArray[i];
         }
 
         return Math.sqrt(sum);
     }
+
  
 }

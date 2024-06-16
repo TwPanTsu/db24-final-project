@@ -25,22 +25,22 @@ public class IvfflatIndexTrainer {
     private IndexInfo ii;
     private RecordFile recordFile;
     private VectorConstant[] vectorIndex;
-    private int NUM_BUCKETS;
+    private int NUM_CLUSTERSS;
     private Constant MAX_VECTOR_CONSTANT;
 
     private long startTime = System.currentTimeMillis();
-    private final long timeLimit = 60000 * 5; // Training time limit
+    private final long timeLimit = 60000 * 15 ; // Training time limit
     private final double sampleRate = 0.5;
-    private final int dropIndexMinNum = 10; // the minimum number of records to avoid dropping an index
+    private final int clusterMin = 20;
 
-    public IvfflatIndexTrainer(IvfflatIndex ivfflatIndex, SearchKeyType keyType, Transaction tx, IndexInfo ii, RecordFile recordFile, VectorConstant[] vectorIndex, int NUM_BUCKETS, Constant MAX_VECTOR_CONSTANT) {
+    public IvfflatIndexTrainer(IvfflatIndex ivfflatIndex, SearchKeyType keyType, Transaction tx, IndexInfo ii, RecordFile recordFile, VectorConstant[] vectorIndex, int NUM_CLUSTERSS, Constant MAX_VECTOR_CONSTANT) {
         this.ivfflatIndex = ivfflatIndex;
         this.keyType = keyType;
         this.tx = tx;
         this.ii = ii;
         this.recordFile = recordFile;
         this.vectorIndex = vectorIndex;
-        this.NUM_BUCKETS = NUM_BUCKETS;
+        this.NUM_CLUSTERSS = NUM_CLUSTERSS;
         this.MAX_VECTOR_CONSTANT = MAX_VECTOR_CONSTANT;
     }
 
@@ -48,7 +48,7 @@ public class IvfflatIndexTrainer {
      * Clears existing data in all buckets.
      */
     private void clearBuckets() {
-        for (int index = 0; index < NUM_BUCKETS; index++) {
+        for (int index = 0; index < NUM_CLUSTERSS; index++) {
             String bucketTableName = ii.indexName() + "-" + index;
             TableInfo bucketTableInfo = VanillaDb.catalogMgr().getTableInfo(bucketTableName, tx);
             if (bucketTableInfo != null) {
@@ -91,7 +91,7 @@ public class IvfflatIndexTrainer {
             bucketRecordFile.setVal(IvfflatIndex.SCHEMA_RID_BLOCK, new BigIntConstant(trainingRecordFile.currentRecordId().block().number()));
             bucketRecordFile.setVal(IvfflatIndex.SCHEMA_RID_ID, new IntegerConstant(trainingRecordFile.currentRecordId().id()));
             bucketRecordFile.close();
-            indexNum = (indexNum + 1) % NUM_BUCKETS;
+            indexNum = (indexNum + 1) % NUM_CLUSTERSS;
         }
 
         trainingRecordFile.close();
@@ -128,7 +128,7 @@ public class IvfflatIndexTrainer {
             int outCount = -1;
             Constant outSum = null;
 
-            for (int index = 0; index < NUM_BUCKETS; index++) {
+            for (int index = 0; index < NUM_CLUSTERSS; index++) {
                 Constant sum = null;
                 int count = -1;
                 Constant mean = vectorIndex[index];
@@ -169,7 +169,7 @@ public class IvfflatIndexTrainer {
                             vectorIndex[index] = (VectorConstant) mean;
                         }
                     }
-                    if ((double)count < (double)this.dropIndexMinNum * this.sampleRate) {
+                    if ((double)count < (double)this.clusterMin * this.sampleRate) {
                         breakKMeans = false;
                         vectorIndex[index] = (VectorConstant) MAX_VECTOR_CONSTANT;
                     }
@@ -199,7 +199,7 @@ public class IvfflatIndexTrainer {
      * @param outMeans the list of means to balance
      */
     private void balanceMeans(LinkedList<Constant> outMeans) {
-        for (int index = 0; index < NUM_BUCKETS; index++) {
+        for (int index = 0; index < NUM_CLUSTERSS; index++) {
             if (MAX_VECTOR_CONSTANT.equals(vectorIndex[index]) && !outMeans.isEmpty()) {
                 vectorIndex[index] = (VectorConstant) outMeans.pop();
             }
@@ -240,7 +240,7 @@ public class IvfflatIndexTrainer {
      */
     private void updateBucketStatisticsAndFinalizeIndex() {
         recordFile.beforeFirst();
-        for (int index = 0; index < NUM_BUCKETS; index++) {
+        for (int index = 0; index < NUM_CLUSTERSS; index++) {
             recordFile.next();
             recordFile.setVal(IvfflatIndex.SCHEMA_KEY, vectorIndex[index]);
             recordFile.setVal(IvfflatIndex.SCHEMA_ID, new IntegerConstant(index));
@@ -258,7 +258,7 @@ public class IvfflatIndexTrainer {
                 }
                 logger.info(bucketTableName + ":count:" + count);
                 bucketRecordFile.close();
-                if (count < this.dropIndexMinNum) {
+                if (count < this.clusterMin) {
                     recordFile.delete();
                 }
             }
@@ -292,7 +292,7 @@ public class IvfflatIndexTrainer {
         sampleAndDistributeRecords(tableInfo, fieldName);
 
         // Calculate initial mean count for k-means clustering
-        int meanCount = (TrainCount() + NUM_BUCKETS - 1) / NUM_BUCKETS;
+        int meanCount = (TrainCount() + NUM_CLUSTERSS - 1) / NUM_CLUSTERSS;
         
         // Perform k-means clustering
         KMeansClustering(meanCount);

@@ -65,12 +65,12 @@ public class IvfflatIndex extends Index {
 	public static final String SCHEMA_RID_ID = "id";
 
 	// Number of buckets for the index
-	public static final int NUM_BUCKETS;
+	public static final int NUM_CLUSTERSS;
 
 	// Static initializer to set the number of buckets from properties
 	static {
-		NUM_BUCKETS = CoreProperties.getLoader().getPropertyAsInteger(
-				IvfflatIndex.class.getName() + ".NUM_BUCKETS", 100);
+		NUM_CLUSTERSS = CoreProperties.getLoader().getPropertyAsInteger(
+				IvfflatIndex.class.getName() + ".NUM_CLUSTERSS", 100);
 	}
 
 	/**
@@ -84,9 +84,9 @@ public class IvfflatIndex extends Index {
 	public static long searchCost(SearchKeyType keyType, long totRecs, long matchRecs) {
 		int rpb = Buffer.BUFFER_SIZE / RecordPage.slotSize(schema(keyType));
 		int index_rpb = Buffer.BUFFER_SIZE / RecordPage.slotSize(indexSchema(keyType));
-		if (NUM_BUCKETS == 0)
+		if (NUM_CLUSTERSS == 0)
 			return 0;
-		return (totRecs / rpb) / NUM_BUCKETS + NUM_BUCKETS / index_rpb;
+		return (totRecs / rpb) / NUM_CLUSTERSS + NUM_CLUSTERSS / index_rpb;
 	}
 
 	/**
@@ -122,7 +122,7 @@ public class IvfflatIndex extends Index {
 	private boolean isBeforeFirsted;
 	private String loggerTblName;
 	private int loggerIndex;
-	private static VectorConstant[] vectorIndexes = new VectorConstant[NUM_BUCKETS];
+	private static VectorConstant[] vectorIndexes = new VectorConstant[NUM_CLUSTERSS];
 	private static boolean hasLoaded = false;
 	private float[] maxVector;
 	private VectorConstant maxVectorCons;
@@ -177,7 +177,7 @@ public class IvfflatIndex extends Index {
 		Integer indexNum = 0;
 
 		// Initialize the vector indexes with maximum vectors
-		for (int i = 0; i < NUM_BUCKETS; i++) {
+		for (int i = 0; i < NUM_CLUSTERSS; i++) {
 			vectorIndexes[i] = maxVectorCons;
 		}
 
@@ -220,7 +220,7 @@ public class IvfflatIndex extends Index {
 		Integer minIndex = 0;
 
 		// Find the closest vector
-		for (Integer indexNum = 0; indexNum < NUM_BUCKETS; indexNum++) {
+		for (Integer indexNum = 0; indexNum < NUM_CLUSTERSS; indexNum++) {
 			VectorConstant v = vectorIndexes[indexNum];
 			double dist = edf.distance(v);
 			if (dist < minDist) {
@@ -371,7 +371,7 @@ public class IvfflatIndex extends Index {
 	 */
 	public void initializeIndex() {
 		VectorType vt = (VectorType) keyType.get(0);
-		for (int i = 0; i < NUM_BUCKETS; i++) {
+		for (int i = 0; i < NUM_CLUSTERSS; i++) {
 			indexRecordFile.insert();
 			indexRecordFile.setVal(SCHEMA_ID, new IntegerConstant(i));
 			indexRecordFile.setVal(SCHEMA_KEY, new VectorConstant(vt.getArgument()));
@@ -382,7 +382,7 @@ public class IvfflatIndex extends Index {
 		// reset index
 		close();
 		// train index
-		IvfflatIndexTrainer ivfflatIndexTrainer = new IvfflatIndexTrainer(ivfIdx, keyType, tx, ii, indexRecordFile, vectorIndexes, NUM_BUCKETS, maxVectorCons);
+		IvfflatIndexTrainer ivfflatIndexTrainer = new IvfflatIndexTrainer(ivfIdx, keyType, tx, ii, indexRecordFile, vectorIndexes, NUM_CLUSTERSS, maxVectorCons);
 		logger.info("INFO: training the indexes.");
 		ivfflatIndexTrainer.trainIndex();
 	}
