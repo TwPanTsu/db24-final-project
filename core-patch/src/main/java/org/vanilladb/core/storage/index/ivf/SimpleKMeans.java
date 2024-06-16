@@ -21,7 +21,7 @@ public class SimpleKMeans {
         initializeCentroids(vectors);
 
         for (int i = 0; i < maxIterations; i++) {
-            System.out.println(i);
+            //System.out.println(i);
             // 2. 
             List<List<float[]>> clusters = new ArrayList<>(numClusters);
             for (int j = 0; j < numClusters; j++) {

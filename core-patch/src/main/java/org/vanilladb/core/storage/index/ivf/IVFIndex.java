@@ -59,7 +59,7 @@ public class IVFIndex extends Index {
     private static final String SCHEMA_RID_BLOCK = "block",
             SCHEMA_RID_ID = "id";
 
-    private static final int NUM_CLUSTERS = 100; // 預設的簇數量
+    private static final int NUM_CLUSTERS = 200; // 預設的簇數量
 
     private SearchKey searchKey;
     private RecordFile rf;
@@ -282,7 +282,7 @@ public class IVFIndex extends Index {
             System.out.println("error read sift.txt");
         }
 
-        System.out.println("end scan sift");
+        //System.out.println("end scan sift");
 
         SimpleKMeans kmeans = new SimpleKMeans(NUM_CLUSTERS, 20);
         List<float[]> clusterCenters = kmeans.train(vectors);
@@ -293,6 +293,6 @@ public class IVFIndex extends Index {
             rf.setVal("centroid", centroid);
             rf.setVal("cluster_id", new IntegerConstant(i));
         }
-        System.out.println("end training");
+        //System.out.println("end training");
     }
 }
