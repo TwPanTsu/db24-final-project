@@ -187,8 +187,8 @@ public class IVFFlatIndex extends Index {
         if (!isBeforeFirsted)
             throw new IllegalStateException("You must call beforeFirst() before iterating index '"
                     + ii.indexName() + "'");
-        if (matched.size() > numNeighbors)
-            return false;
+        // if (matched.size() > numNeighbors)
+        //     return false;
 
         int target = 0;
         Double distance = Double.MAX_VALUE;
