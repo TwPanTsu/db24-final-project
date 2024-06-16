@@ -15,18 +15,13 @@
  *******************************************************************************/
 package org.vanilladb.core.query.algebra.index;
 
-import java.util.ArrayList;
-import java.util.PriorityQueue;
-
 import org.vanilladb.core.query.algebra.Scan;
 import org.vanilladb.core.query.algebra.TableScan;
 import org.vanilladb.core.query.algebra.UpdateScan;
 import org.vanilladb.core.sql.Constant;
 import org.vanilladb.core.sql.distfn.DistanceFn;
 import org.vanilladb.core.storage.index.Index;
-import org.vanilladb.core.storage.index.SearchRange;
 import org.vanilladb.core.storage.index.ivfflat.IVFFlatIndex;
-import org.vanilladb.core.storage.index.ivfflat.VectorPairComparable;
 import org.vanilladb.core.storage.record.RecordId;
 import org.vanilladb.core.util.CoreProperties;
 
@@ -37,8 +32,6 @@ public class IvfFlatIndexScan implements UpdateScan {
     private IVFFlatIndex idx;
     private TableScan ts;
     private DistanceFn distFn;
-    private PriorityQueue<VectorPairComparable> pq;
-    private boolean start;
 
     public static final int NUM_CLUSTERS_MAX = CoreProperties.getLoader().getPropertyAsInteger(
             IVFFlatIndex.class.getName() + ".NUM_CLUSTERS_MAX", 10);
@@ -69,18 +62,6 @@ public class IvfFlatIndexScan implements UpdateScan {
     @Override
     public void beforeFirst() {
         idx.beforeFirst(this.distFn);
-        var new_pq = new PriorityQueue<VectorPairComparable>((a, b) -> b.compareTo(a));
-
-        while (idx.next()) {
-            var vr = idx.getVectorPair();
-            if (new_pq.size() == NUM_CLUSTERS_MAX)
-                new_pq.poll();
-            new_pq.add(new VectorPairComparable(vr.VectorConst, vr.rid, distFn));
-        }
-
-        pq = new PriorityQueue<>(new ArrayList<>(new_pq));
-        start = false;
-        idx.close();
     }
 
     /**
@@ -93,14 +74,12 @@ public class IvfFlatIndexScan implements UpdateScan {
      */
     @Override
     public boolean next() {
-        if (!start) {
-			start = true;
-			if (pq.isEmpty())
-				return false;
-			return true;
+        boolean ok = idx.next();
+		if (ok) {
+			RecordId rid = idx.getDataRecordId();
+			ts.moveToRecordId(rid);
 		}
-		pq.poll();
-		return !pq.isEmpty();
+		return ok;
     }
 
     /**
@@ -112,7 +91,6 @@ public class IvfFlatIndexScan implements UpdateScan {
     public void close() {
         idx.close();
         ts.close();
-        pq.clear();
     }
 
     /**
@@ -122,8 +100,6 @@ public class IvfFlatIndexScan implements UpdateScan {
      */
     @Override
     public Constant getVal(String fldName) {
-        var vec = pq.peek();
-		ts.moveToRecordId(vec.rid);
         return ts.getVal(fldName);
     }
 

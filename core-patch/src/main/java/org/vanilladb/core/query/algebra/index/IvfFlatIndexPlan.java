@@ -27,7 +27,6 @@ import org.vanilladb.core.sql.Schema;
 import org.vanilladb.core.sql.distfn.DistanceFn;
 import org.vanilladb.core.storage.index.Index;
 import org.vanilladb.core.storage.index.SearchKeyType;
-import org.vanilladb.core.storage.index.SearchRange;
 import org.vanilladb.core.storage.metadata.index.IndexInfo;
 import org.vanilladb.core.storage.metadata.statistics.Histogram;
 import org.vanilladb.core.storage.tx.Transaction;

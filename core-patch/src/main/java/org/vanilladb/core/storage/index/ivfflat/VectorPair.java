@@ -5,11 +5,13 @@ import org.vanilladb.core.storage.record.RecordId;
 
 public class VectorPair {
     public VectorConstant VectorConst;
-    public RecordId rid;
+    public Integer rid;
+    public Long blk;
 
-    public VectorPair(VectorConstant VectorConst, RecordId rid) {
+    public VectorPair(VectorConstant VectorConst, int rid,long blk) {
         this.VectorConst = VectorConst;
         this.rid = rid;
+        this.blk = blk;
     }
 
     @Override

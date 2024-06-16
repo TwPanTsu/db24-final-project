@@ -128,7 +128,7 @@ class TablePlanner {
 		// p = new IndexSelectPlan(tp, ii, searchVector, tx);
 		List<IndexInfo> iis = VanillaDb.catalogMgr().getIndexInfo(tblName, embField.fieldName(), tx);
 		IndexInfo ii = null;
-		System.out.println("Table: " + tblName + " field: " + embField.fieldName());
+		// System.out.println("Table: " + tblName + " field: " + embField.fieldName());
 		for (IndexInfo iii : iis) {
 			if (iii.fieldNames().contains(embField.fieldName()))
 				ii = iii;
