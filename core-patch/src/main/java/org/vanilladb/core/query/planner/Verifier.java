@@ -18,6 +18,7 @@ package org.vanilladb.core.query.planner;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.logging.Logger;
 
 import org.vanilladb.core.query.parse.CreateIndexData;
 import org.vanilladb.core.query.parse.CreateTableData;
@@ -47,6 +48,7 @@ import org.vanilladb.core.storage.tx.Transaction;
  * 
  */
 public class Verifier {
+	private static Logger logger = Logger.getLogger(VanillaDb.class.getName());
 
 	public static void verifyQueryData(QueryData data, Transaction tx) {
 		List<Schema> schs = new ArrayList<Schema>(data.tables().size());
@@ -188,16 +190,23 @@ public class Verifier {
 
 	public static void verifyCreateTableData(CreateTableData data,
 			Transaction tx) {
+		
+		logger.info("verify1");
 		// examine table name
 		TableInfo ti = VanillaDb.catalogMgr().getTableInfo(data.tableName(), tx);
+		logger.info("verify2");
 		if (ti != null)
 			throw new BadSemanticException("table " + data.tableName()
 					+ " already exist");
+		logger.info("verify2");
 		if (data.tableName().length() > TableMgr.MAX_NAME)
 			throw new BadSemanticException("the length of table name '"
 					+ data.tableName()
 					+ "' is too long; see the properties file ");
+
+		logger.info("verify2");
 		Set<String> flds = data.newSchema().fields();
+		logger.info("verify3");
 		for (String fld : flds)
 			if (fld.length() > TableMgr.MAX_NAME)
 				throw new BadSemanticException("the length of field name '"

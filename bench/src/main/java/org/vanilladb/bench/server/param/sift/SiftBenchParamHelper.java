@@ -61,6 +61,8 @@ public class SiftBenchParamHelper implements StoredProcedureHelper {
         rec.setVal("rc", new IntegerConstant(numNeighbors));
 
         for (int i = 0; i < numNeighbors; i++) {
+            if(items[i] == null)   
+                items[i] = i;
             rec.setVal("id_" + i, new IntegerConstant(items[i]));
         }
         return rec;

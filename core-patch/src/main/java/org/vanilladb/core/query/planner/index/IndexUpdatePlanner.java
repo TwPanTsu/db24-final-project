@@ -22,6 +22,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Logger;
 
 import org.vanilladb.core.query.algebra.Plan;
 import org.vanilladb.core.query.algebra.SelectPlan;
@@ -45,11 +46,13 @@ import org.vanilladb.core.storage.metadata.index.IndexInfo;
 import org.vanilladb.core.storage.record.RecordId;
 import org.vanilladb.core.storage.tx.Transaction;
 
+
 /**
  * A modification of the basic update planner. It dispatches each update
  * statement to the corresponding index planner.
  */
 public class IndexUpdatePlanner implements UpdatePlanner {
+	private static Logger logger = Logger.getLogger(VanillaDb.class.getName());
 	@Override
 	public int executeInsert(InsertData data, Transaction tx) {
 		String tblname = data.tableName();
@@ -85,6 +88,9 @@ public class IndexUpdatePlanner implements UpdatePlanner {
 			idx.close();
 		}
 		
+		VanillaDb.ivfIndex.UpdateCluster(data, tx);
+		//logger.info("Finish Update cluster.");
+
 		VanillaDb.statMgr().countRecordUpdates(data.tableName(), 1);
 		return 1;
 	}

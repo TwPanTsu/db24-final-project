@@ -33,6 +33,7 @@ import org.vanilladb.core.server.task.TaskMgr;
 import org.vanilladb.core.sql.storedprocedure.SampleStoredProcedureFactory;
 import org.vanilladb.core.sql.storedprocedure.StoredProcedureFactory;
 import org.vanilladb.core.storage.file.FileMgr;
+import org.vanilladb.core.storage.index.ivf.IVFIndex;
 import org.vanilladb.core.storage.log.LogMgr;
 import org.vanilladb.core.storage.metadata.CatalogMgr;
 import org.vanilladb.core.storage.metadata.statistics.StatMgr;
@@ -72,6 +73,7 @@ public class VanillaDb {
 	// Utility classes
 	private static StoredProcedureFactory spFactory;
 	private static Profiler profiler;
+	public static  IVFIndex ivfIndex;
 
 	/**
 	 * Initialization Flag
@@ -157,6 +159,10 @@ public class VanillaDb {
 			initCheckpointingTask();
 
 		// finish initialization
+		inited = true;
+
+		ivfIndex = new IVFIndex(); // Final.
+		logger.info("New IvfIndex.");
 		inited = true;
 	}
 

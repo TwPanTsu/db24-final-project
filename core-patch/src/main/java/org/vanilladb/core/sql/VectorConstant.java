@@ -42,7 +42,7 @@ public class VectorConstant extends Constant implements Serializable {
         Random random = new Random();
         vec = new float[length];
         for (int i = 0; i < length; i++) {
-            vec[i] = random.nextInt(9999);
+            vec[i] = random.nextInt(256);
         }
     }
 
