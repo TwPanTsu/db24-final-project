@@ -11,6 +11,9 @@ public class SiftInsertParamHelper implements StoredProcedureHelper {
     private VectorConstant query;
     private int id;
 
+    //our new data type
+    private final String centroidTable = "centroids";
+
     @Override
     public void prepareParameters(Object... pars) {
         numDimension = (Integer) pars[0];
@@ -46,4 +49,7 @@ public class SiftInsertParamHelper implements StoredProcedureHelper {
         return false;
     }
     
+    public String getCentroidTableName() {
+        return centroidTable;
+    }
 }
