@@ -24,7 +24,9 @@ import java.util.Set;
 import org.vanilladb.core.query.algebra.Plan;
 import org.vanilladb.core.query.algebra.SelectPlan;
 import org.vanilladb.core.query.algebra.TablePlan;
+import org.vanilladb.core.query.algebra.index.IVFPlan;
 import org.vanilladb.core.query.algebra.index.IndexJoinPlan;
+import org.vanilladb.core.query.algebra.materialize.MinHeapPlan;
 import org.vanilladb.core.query.algebra.multibuffer.MultiBufferProductPlan;
 import org.vanilladb.core.query.algebra.vector.NearestNeighborPlan;
 import org.vanilladb.core.query.planner.index.IndexSelector;
@@ -114,13 +116,35 @@ class TablePlanner {
 	 * @return a select plan for the table.
 	 */
 	public Plan makeSelectPlan() {
-		Plan p = makeIndexSelectPlan();
-		if (p == null)
-			p = tp;
-		p =  addSelectPredicate(p);
-		if (embField != null) {
-			p = new NearestNeighborPlan(p, embField, tx);
+		// Plan p = makeIndexSelectPlan();
+		// if (p == null)
+		// 	p = tp;
+		// p =  addSelectPredicate(p);
+		// if (embField != null) {
+		// 	p = new NearestNeighborPlan(p, embField, tx);
+		// }
+		// return p;
+		
+		//IVF
+		Plan p;
+		if (embField != null ) {
+			// Dont allow select
+			List<IndexInfo> ii = VanillaDb.catalogMgr().getIndexInfo(tblName, embField.fieldName(), tx);
+			p = new IVFPlan(tp, ii.get(0), embField, tx);
+			p = new MinHeapPlan(p, 20, embField);
+		} 
+		else {
+			// Proceed with the regular index select plan and select predicate
+			p = makeIndexSelectPlan();
+			if (p == null) {
+					p = tp;
+			}
+			p = addSelectPredicate(p);
+			if (embField != null) {
+				p = new NearestNeighborPlan(p, embField, tx);
+			}
 		}
+
 		return p;
 	}
 
@@ -263,5 +287,19 @@ class TablePlanner {
 			return new SelectPlan(p, joinPred);
 		else
 			return p;
+	}
+
+	//IVF
+	private boolean hasIVFIndex(DistanceFn embField) {
+    List<IndexInfo> iis = VanillaDb.catalogMgr().getIndexInfo(tblName, embField.fieldName(), tx);
+    if(iis.size()>0)return true;
+		return false;
+	}
+
+	//IVF
+	private IndexInfo getIVFIndex(DistanceFn embField) {
+
+    List<IndexInfo> iis = VanillaDb.catalogMgr().getIndexInfo(tblName, embField.fieldName(), tx);
+    return iis.get(0);
 	}
 }
