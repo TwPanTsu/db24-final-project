@@ -29,11 +29,14 @@ import org.vanilladb.core.query.algebra.multibuffer.MultiBufferProductPlan;
 import org.vanilladb.core.query.algebra.vector.NearestNeighborPlan;
 import org.vanilladb.core.query.planner.index.IndexSelector;
 import org.vanilladb.core.server.VanillaDb;
+import org.vanilladb.core.sql.ConstantRange;
 import org.vanilladb.core.sql.Schema;
 import org.vanilladb.core.sql.distfn.DistanceFn;
 import org.vanilladb.core.sql.predicate.Predicate;
 import org.vanilladb.core.storage.metadata.index.IndexInfo;
 import org.vanilladb.core.storage.tx.Transaction;
+import org.vanilladb.core.query.algebra.index.IndexSelectPlan;
+import org.vanilladb.core.query.algebra.index.IvfFlatIndexPlan;
 
 /**
  * This class contains methods for planning a single table.
@@ -56,11 +59,11 @@ class TablePlanner {
 	 * useful.
 	 * 
 	 * @param tblName
-	 *            the name of the table
+	 *                the name of the table
 	 * @param pred
-	 *            the query predicate
+	 *                the query predicate
 	 * @param tx
-	 *            the calling transaction
+	 *                the calling transaction
 	 */
 	public TablePlanner(String tblName, Predicate pred, Transaction tx, int id) {
 		this.tblName = tblName;
@@ -89,7 +92,7 @@ class TablePlanner {
 			}
 		}
 	}
-	
+
 	/**
 	 * An unique number to this planner.
 	 * 
@@ -98,11 +101,11 @@ class TablePlanner {
 	public int getId() {
 		return id;
 	}
-	
+
 	/**
 	 * Use binary to represent the combination
 	 */
-	@ Override
+	@Override
 	public int hashCode() {
 		return hashCode;
 	}
@@ -117,10 +120,23 @@ class TablePlanner {
 		Plan p = makeIndexSelectPlan();
 		if (p == null)
 			p = tp;
-		p =  addSelectPredicate(p);
-		if (embField != null) {
-			p = new NearestNeighborPlan(p, embField, tx);
+		p = addSelectPredicate(p);
+		if (embField == null)
+			return p;
+		// System.out.println("Field: " + embField.fieldName());
+		// System.out.println("TableName: " + tblName);
+		// p = new IndexSelectPlan(tp, ii, searchVector, tx);
+		List<IndexInfo> iis = VanillaDb.catalogMgr().getIndexInfo(tblName, embField.fieldName(), tx);
+		IndexInfo ii = null;
+		// System.out.println("Table: " + tblName + " field: " + embField.fieldName());
+		for (IndexInfo iii : iis) {
+			if (iii.fieldNames().contains(embField.fieldName()))
+				ii = iii;
 		}
+		if (ii == null)
+			throw new RuntimeException("Can't find index for vector!");
+		p = new IvfFlatIndexPlan(tp, ii, embField, tx);
+		p = new NearestNeighborPlan(p, embField, tx);
 		return p;
 	}
 
@@ -135,7 +151,7 @@ class TablePlanner {
 	 * </p>
 	 * 
 	 * @param trunk
-	 *            the specified trunk of join
+	 *              the specified trunk of join
 	 * @return a join plan of the trunk and this table
 	 */
 	public Plan makeJoinPlan(Plan trunk) {
@@ -158,7 +174,7 @@ class TablePlanner {
 	 * </p>
 	 * 
 	 * @param trunk
-	 *            the specified trunk of join
+	 *              the specified trunk of join
 	 * @return a product plan of the trunk and this table
 	 */
 	public Plan makeProductPlan(Plan trunk) {
@@ -190,14 +206,14 @@ class TablePlanner {
 		int matchedCount = 0;
 		IndexInfo bestIndex = null;
 		Map<String, String> bestJoinPairs = null; // <Outer Field -> Self Field>
-		
+
 		// Find the indexes that have fields joined with the target table
 		Set<IndexInfo> candidates = new HashSet<IndexInfo>();
 		for (String fieldName : sch.fields()) {
 			Set<String> outerFlds = pred.joinFields(fieldName);
 			if (outerFlds == null)
 				continue;
-			
+
 			for (String outerFld : outerFlds)
 				if (trunkSch.hasField(outerFld)) {
 					List<IndexInfo> iis = VanillaDb.catalogMgr().getIndexInfo(tblName, fieldName, tx);
@@ -205,12 +221,12 @@ class TablePlanner {
 					break;
 				}
 		}
-		
+
 		// Find the indexes with the most joined fields
 		for (IndexInfo ii : candidates) {
 			if (ii.fieldNames().size() < matchedCount)
 				continue;
-			
+
 			Map<String, String> joinPairs = new HashMap<String, String>();
 			for (String fieldName : ii.fieldNames()) {
 				Set<String> outerFlds = pred.joinFields(fieldName);
@@ -220,14 +236,14 @@ class TablePlanner {
 						break;
 					}
 			}
-			
+
 			if (joinPairs.size() > matchedCount) {
 				matchedCount = joinPairs.size();
 				bestIndex = ii;
 				bestJoinPairs = joinPairs;
 			}
 		}
-		
+
 		if (bestIndex != null) {
 			Plan p = new IndexJoinPlan(trunk, tp, bestIndex, bestJoinPairs, tx);
 			/*
@@ -240,7 +256,7 @@ class TablePlanner {
 			p = addSelectPredicate(p);
 			return addJoinPredicate(p, trunkSch);
 		}
-		
+
 		return null;
 	}
 

@@ -7,6 +7,10 @@ public abstract class DistanceFn {
     protected VectorConstant query;
     private String fieldName;
 
+    public VectorConstant getQuery() {
+        return this.query;
+    }
+
     public DistanceFn(String fieldName) {
         this.fieldName = fieldName;
     }
@@ -14,7 +18,7 @@ public abstract class DistanceFn {
     public void setQueryVector(VectorConstant query) {
         this.query = query;
     }
-    
+
     public double distance(VectorConstant vec) {
         // check vector dimension
         if (query.dimension() != vec.dimension()) {

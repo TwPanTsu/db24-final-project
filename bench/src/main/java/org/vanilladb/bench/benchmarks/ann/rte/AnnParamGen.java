@@ -14,6 +14,13 @@ public class AnnParamGen implements TxParamGenerator<AnnTransactionType> {
     private VectorConstant[] queryPool = new VectorConstant[NUM_QUERY];
     private VectorConstant query;
 
+    // Prevent null error
+    public AnnParamGen() {
+        for (int i = 0; i < NUM_QUERY; i++) {
+            queryPool[i] = new VectorConstant(AnnBenchConstants.NUM_DIMENSION);
+        }
+    }
+
     @Override
     public AnnTransactionType getTxnType() {
         return AnnTransactionType.ANN;

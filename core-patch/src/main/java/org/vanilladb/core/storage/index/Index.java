@@ -17,6 +17,7 @@ package org.vanilladb.core.storage.index;
 
 import org.vanilladb.core.storage.index.btree.BTreeIndex;
 import org.vanilladb.core.storage.index.hash.HashIndex;
+import org.vanilladb.core.storage.index.ivfflat.IVFFlatIndex;
 // import org.vanilladb.core.storage.index.lsh.LSHashIndex;
 import org.vanilladb.core.storage.metadata.index.IndexInfo;
 import org.vanilladb.core.storage.record.RecordId;
@@ -38,13 +39,13 @@ public abstract class Index {
 	 * </p>
 	 * 
 	 * @param idxType
-	 *            the index type
+	 *                  the index type
 	 * @param keyType
-	 *            the type of the search key
+	 *                  the type of the search key
 	 * @param totRecs
-	 *            the total number of records in the table
+	 *                  the total number of records in the table
 	 * @param matchRecs
-	 *            the number of matching records
+	 *                  the number of matching records
 	 * @return the estimated the number of block accesses
 	 */
 	public static long searchCost(IndexType idxType, SearchKeyType keyType, long totRecs, long matchRecs) {
@@ -61,8 +62,10 @@ public abstract class Index {
 			return new HashIndex(ii, keyType, tx);
 		else if (ii.indexType() == IndexType.BTREE)
 			return new BTreeIndex(ii, keyType, tx);
+		else if (ii.indexType() == IndexType.IVF_FLAT)
+			return new IVFFlatIndex(ii, keyType, tx);
 		// else if (ii.indexType() == IndexType.LSH)
-		// 	return new LSHashIndex(ii, keyType, tx);
+		// return new LSHashIndex(ii, keyType, tx);
 		else
 			throw new IllegalArgumentException("unsupported index type");
 	}
@@ -76,11 +79,11 @@ public abstract class Index {
 	 * Opens a hash index for the specified index.
 	 * 
 	 * @param ii
-	 *            the information of this index
+	 *                the information of this index
 	 * @param keyType
-	 *            the type of the search key
+	 *                the type of the search key
 	 * @param tx
-	 *            the calling transaction
+	 *                the calling transaction
 	 */
 	public Index(IndexInfo ii, SearchKeyType keyType, Transaction tx) {
 		this.ii = ii;
@@ -94,7 +97,7 @@ public abstract class Index {
 	 * range of search keys.
 	 * 
 	 * @param searchRange
-	 *            the range of search keys
+	 *                    the range of search keys
 	 */
 	public abstract void beforeFirst(SearchRange searchRange);
 
@@ -118,11 +121,11 @@ public abstract class Index {
 	 * Inserts an index record having the specified key and data record ID.
 	 * 
 	 * @param key
-	 *            the key in the new index record.
+	 *                         the key in the new index record.
 	 * @param dataRecordId
-	 *            the data record ID in the new index record.
+	 *                         the data record ID in the new index record.
 	 * @param doLogicalLogging
-	 *            is logical logging enabled
+	 *                         is logical logging enabled
 	 */
 	public abstract void insert(SearchKey key, RecordId dataRecordId, boolean doLogicalLogging);
 
@@ -130,11 +133,11 @@ public abstract class Index {
 	 * Deletes the index record having the specified key and data record ID.
 	 * 
 	 * @param key
-	 *            the key of the deleted index record
+	 *                         the key of the deleted index record
 	 * @param dataRecordId
-	 *            the data record ID of the deleted index record
+	 *                         the data record ID of the deleted index record
 	 * @param doLogicalLogging
-	 *            is logical logging enabled
+	 *                         is logical logging enabled
 	 */
 	public abstract void delete(SearchKey key, RecordId dataRecordId, boolean doLogicalLogging);
 

@@ -8,6 +8,12 @@ public class EuclideanFn extends DistanceFn {
         super(fld);
     }
 
+    public EuclideanFn(VectorConstant query) {
+        super("");
+        // System.out.println(query.asJavaVal());
+        this.query = query;
+    }
+
     @Override
     protected double calculateDistance(VectorConstant vec) {
         double sum = 0;
@@ -17,5 +23,5 @@ public class EuclideanFn extends DistanceFn {
         }
         return Math.sqrt(sum);
     }
-    
+
 }

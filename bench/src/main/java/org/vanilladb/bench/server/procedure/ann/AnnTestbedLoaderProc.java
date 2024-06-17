@@ -3,7 +3,7 @@ package org.vanilladb.bench.server.procedure.ann;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.vanilladb.bench.benchmarks.ann.AnnBenchConstants;
+// import org.vanilladb.bench.benchmarks.ann.AnnBenchConstants;
 import org.vanilladb.bench.server.param.ann.AnnTestbedLoaderParamHelper;
 import org.vanilladb.bench.server.procedure.StoredProcedureUtils;
 import org.vanilladb.core.server.VanillaDb;
@@ -68,12 +68,12 @@ public class AnnTestbedLoaderProc extends StoredProcedure<AnnTestbedLoaderParamH
 
         // Skip adding indexes
 
-        // if (logger.isLoggable(Level.INFO))
-        //     logger.info("Creating indexes...");
+        if (logger.isLoggable(Level.INFO))
+            logger.info("Creating indexes...");
 
-        // // Create indexes
-        // for (String sql : paramHelper.getIndexSchemas())
-        //     StoredProcedureUtils.executeUpdate(sql, tx);
+        // Create indexes
+        for (String sql : paramHelper.getIndexSchemas())
+            StoredProcedureUtils.executeUpdate(sql, tx);
         
         if (logger.isLoggable(Level.FINE))
             logger.info("Finish creating schemas.");
