@@ -40,7 +40,9 @@ import org.vanilladb.core.query.planner.UpdatePlanner;
 import org.vanilladb.core.server.VanillaDb;
 import org.vanilladb.core.sql.Constant;
 import org.vanilladb.core.storage.index.Index;
+import org.vanilladb.core.storage.index.IndexType;
 import org.vanilladb.core.storage.index.SearchKey;
+import org.vanilladb.core.storage.index.IVF.IVFIndex;
 import org.vanilladb.core.storage.metadata.index.IndexInfo;
 import org.vanilladb.core.storage.record.RecordId;
 import org.vanilladb.core.storage.tx.Transaction;
@@ -54,7 +56,7 @@ public class IndexUpdatePlanner implements UpdatePlanner {
 	public int executeInsert(InsertData data, Transaction tx) {
 		String tblname = data.tableName();
 		Plan p = new TablePlan(tblname, tx);
-		
+
 		// Construct a map from field names to values
 		Map<String, Constant> fldValMap = new HashMap<String, Constant>();
 		Iterator<Constant> valIter = data.vals().iterator();
@@ -71,20 +73,23 @@ public class IndexUpdatePlanner implements UpdatePlanner {
 		}
 		RecordId rid = s.getRecordId();
 		s.close();
-		
+
 		// Insert the record to all corresponding indexes
 		Set<IndexInfo> indexes = new HashSet<IndexInfo>();
 		for (String fldname : data.fields()) {
 			List<IndexInfo> iis = VanillaDb.catalogMgr().getIndexInfo(tblname, fldname, tx);
 			indexes.addAll(iis);
 		}
-		
+
 		for (IndexInfo ii : indexes) {
 			Index idx = ii.open(tx);
-			idx.insert(new SearchKey(ii.fieldNames(), fldValMap), rid, true);
+			if (data.random() && ii.indexType() == IndexType.IVF)
+				((IVFIndex) idx).insert_random(new SearchKey(ii.fieldNames(), fldValMap), rid, false);
+			else
+				idx.insert(new SearchKey(ii.fieldNames(), fldValMap), rid, true);
 			idx.close();
 		}
-		
+
 		VanillaDb.statMgr().countRecordUpdates(data.tableName(), 1);
 		return 1;
 	}
@@ -94,7 +99,7 @@ public class IndexUpdatePlanner implements UpdatePlanner {
 		String tblName = data.tableName();
 		TablePlan tp = new TablePlan(tblName, tx);
 		Plan selectPlan = null;
-		
+
 		// Create a IndexSelectPlan if there is matching index in the predicate
 		boolean usingIndex = false;
 		selectPlan = IndexSelector.selectByBestMatchedIndex(tblName, tp, data.pred(), tx);
@@ -104,23 +109,23 @@ public class IndexUpdatePlanner implements UpdatePlanner {
 			selectPlan = new SelectPlan(selectPlan, data.pred());
 			usingIndex = true;
 		}
-		
+
 		// Retrieve all indexes
 		List<IndexInfo> allIndexes = new LinkedList<IndexInfo>();
 		Set<String> indexedFlds = VanillaDb.catalogMgr().getIndexedFields(tblName, tx);
-		
+
 		for (String indexedFld : indexedFlds) {
 			List<IndexInfo> iis = VanillaDb.catalogMgr().getIndexInfo(tblName, indexedFld, tx);
 			allIndexes.addAll(iis);
 		}
-		
+
 		// Open the scan
 		UpdateScan s = (UpdateScan) selectPlan.open();
 		int count = 0;
 		s.beforeFirst();
 		while (s.next()) {
 			RecordId rid = s.getRecordId();
-			
+
 			// Delete the record from every index
 			for (IndexInfo ii : allIndexes) {
 				// Construct a key-value map
@@ -128,13 +133,13 @@ public class IndexUpdatePlanner implements UpdatePlanner {
 				for (String fldName : ii.fieldNames())
 					fldValMap.put(fldName, s.getVal(fldName));
 				SearchKey key = new SearchKey(ii.fieldNames(), fldValMap);
-				
+
 				// Delete from the index
 				Index index = ii.open(tx);
 				index.delete(key, rid, true);
 				index.close();
 			}
-			
+
 			// Delete the record from the record file
 			s.delete();
 
@@ -150,11 +155,11 @@ public class IndexUpdatePlanner implements UpdatePlanner {
 				s = (UpdateScan) selectPlan.open();
 				s.beforeFirst();
 			}
-			
+
 			count++;
 		}
 		s.close();
-		
+
 		VanillaDb.statMgr().countRecordUpdates(data.tableName(), count);
 		return count;
 	}
@@ -164,14 +169,14 @@ public class IndexUpdatePlanner implements UpdatePlanner {
 		String tblName = data.tableName();
 		TablePlan tp = new TablePlan(tblName, tx);
 		Plan selectPlan = null;
-		
+
 		// Create a IndexSelectPlan if there is matching index in the predicate
 		selectPlan = IndexSelector.selectByBestMatchedIndex(tblName, tp, data.pred(), tx, data.targetFields());
 		if (selectPlan == null)
 			selectPlan = new SelectPlan(tp, data.pred());
 		else
 			selectPlan = new SelectPlan(selectPlan, data.pred());
-		
+
 		// Open all indexes associate with target fields
 		Set<Index> modifiedIndexes = new HashSet<Index>();
 		for (String fieldName : data.targetFields()) {
@@ -179,27 +184,27 @@ public class IndexUpdatePlanner implements UpdatePlanner {
 			for (IndexInfo ii : iiList)
 				modifiedIndexes.add(ii.open(tx));
 		}
-		
+
 		// Open the scan
 		UpdateScan s = (UpdateScan) selectPlan.open();
 		s.beforeFirst();
 		int count = 0;
 		while (s.next()) {
-			
+
 			// Construct a mapping from field names to values
 			Map<String, Constant> oldValMap = new HashMap<String, Constant>();
 			Map<String, Constant> newValMap = new HashMap<String, Constant>();
 			for (String fieldName : data.targetFields()) {
 				Constant oldVal = s.getVal(fieldName);
 				Constant newVal = data.newValue(fieldName).evaluate(s);
-				
+
 				oldValMap.put(fieldName, oldVal);
 				newValMap.put(fieldName, newVal);
 				s.setVal(fieldName, newVal);
 			}
-			
+
 			RecordId rid = s.getRecordId();
-			
+
 			// Update the indexes
 			for (Index index : modifiedIndexes) {
 				// Construct a SearchKey for the old value
@@ -211,10 +216,10 @@ public class IndexUpdatePlanner implements UpdatePlanner {
 					fldValMap.put(fldName, oldVal);
 				}
 				SearchKey oldKey = new SearchKey(index.getIndexInfo().fieldNames(), fldValMap);
-				
+
 				// Delete the old value from the index
 				index.delete(oldKey, rid, true);
-				
+
 				// Construct a SearchKey for the new value
 				fldValMap = new HashMap<String, Constant>();
 				for (String fldName : index.getIndexInfo().fieldNames()) {
@@ -224,21 +229,21 @@ public class IndexUpdatePlanner implements UpdatePlanner {
 					fldValMap.put(fldName, newVal);
 				}
 				SearchKey newKey = new SearchKey(index.getIndexInfo().fieldNames(), fldValMap);
-				
+
 				// Insert the new value to the index
 				index.insert(newKey, rid, true);
-				
+
 				index.close();
 			}
-			
+
 			count++;
 		}
-		
+
 		// Close opened indexes and the record file
 		for (Index index : modifiedIndexes)
 			index.close();
 		s.close();
-		
+
 		VanillaDb.statMgr().countRecordUpdates(data.tableName(), count);
 		return count;
 	}
