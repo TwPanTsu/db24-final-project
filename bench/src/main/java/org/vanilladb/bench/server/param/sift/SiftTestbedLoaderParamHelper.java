@@ -25,6 +25,7 @@ public class SiftTestbedLoaderParamHelper implements StoredProcedureHelper {
 
     public List<String> getIdxFields() {
         List<String> embFields = new ArrayList<String>(1);
+        embFields.add("i_id");
         embFields.add("i_emb");
         return embFields;
     }
@@ -45,7 +46,7 @@ public class SiftTestbedLoaderParamHelper implements StoredProcedureHelper {
     public void prepareParameters(Object... pars) {
         numItems = (Integer) pars[0];
         TABLES_DDL[0] = "CREATE TABLE " + getTableName() + " (i_id INT, i_emb VECTOR(" + N_DIM + "))";
-        INDEXES_DDL[0] = "CREATE INDEX " + getIdxName()+ " ON items (" + getIdxFields().get(0) + ") USING IVF";
+        INDEXES_DDL[0] = "CREATE INDEX " + getIdxName()+ " ON " + getTableName() + " (" + getIdxFields().get(0) + ", " + getIdxFields().get(1) + ") USING IVF";
     }
 
     @Override

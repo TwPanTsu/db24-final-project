@@ -11,6 +11,7 @@ public class SiftInsertProc extends StoredProcedure<SiftInsertParamHelper> {
         super(new SiftInsertParamHelper());
     }
 
+
     @Override
     protected void executeSql() {
         SiftInsertParamHelper paramHelper = getHelper();

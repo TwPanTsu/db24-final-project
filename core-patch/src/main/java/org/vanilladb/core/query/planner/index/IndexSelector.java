@@ -22,6 +22,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import javax.sound.midi.SysexMessage;
+
 import org.vanilladb.core.query.algebra.TablePlan;
 import org.vanilladb.core.query.algebra.index.IndexSelectPlan;
 import org.vanilladb.core.server.VanillaDb;
@@ -39,6 +41,7 @@ public class IndexSelector {
 		Set<IndexInfo> candidates = new HashSet<IndexInfo>();
 		for (String fieldName : VanillaDb.catalogMgr().getIndexedFields(tblName, tx)) {
 			ConstantRange searchRange = pred.constantRange(fieldName);
+			// 2 possibility: 1. the predicate does not have the field 2. the field isn't bounded by the predicate
 			if (searchRange == null)
 				continue;
 			

@@ -12,6 +12,7 @@ public class NearestNeighborPlan implements Plan {
     private Plan child;
 
     public NearestNeighborPlan(Plan p, DistanceFn distFn, Transaction tx) {
+        // p is an IVFindexSelectPlan
         this.child = new SortPlan(p, distFn, tx);
     }
 

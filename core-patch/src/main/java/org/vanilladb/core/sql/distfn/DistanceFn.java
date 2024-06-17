@@ -5,6 +5,7 @@ import org.vanilladb.core.sql.VectorConstant;
 public abstract class DistanceFn {
 
     protected VectorConstant query;
+    int[] int_query;
     private String fieldName;
 
     public DistanceFn(String fieldName) {
@@ -13,9 +14,10 @@ public abstract class DistanceFn {
 
     public void setQueryVector(VectorConstant query) {
         this.query = query;
+        this.int_query = query.intVec();
     }
     
-    public double distance(VectorConstant vec) {
+    public int distance(VectorConstant vec) {
         // check vector dimension
         if (query.dimension() != vec.dimension()) {
             throw new IllegalArgumentException("Vector length does not match");
@@ -23,7 +25,7 @@ public abstract class DistanceFn {
         return calculateDistance(vec);
     }
 
-    protected abstract double calculateDistance(VectorConstant vec);
+    protected abstract int calculateDistance(VectorConstant vec);
 
     public String fieldName() {
         return fieldName;

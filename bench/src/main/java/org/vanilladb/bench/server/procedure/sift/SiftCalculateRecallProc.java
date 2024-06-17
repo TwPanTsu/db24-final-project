@@ -1,8 +1,8 @@
 package org.vanilladb.bench.server.procedure.sift;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.ArrayList;
 
 import org.vanilladb.bench.benchmarks.sift.SiftBenchConstants;
 import org.vanilladb.bench.server.param.sift.SiftBenchParamHelper;
@@ -28,12 +28,7 @@ public class SiftCalculateRecallProc extends StoredProcedure<SiftBenchParamHelpe
         ArrayList<Object[]> insertHistory = paramHelper.getInsertHistory(); //[emb, id]
 
         String deleteSql = String.format("DELETE FROM %s WHERE i_id >= %d", paramHelper.getTableName(), SiftBenchConstants.NUM_ITEMS);
-        try {
-            StoredProcedureUtils.executeUpdate(deleteSql, tx);
-            Thread.sleep(100);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+        StoredProcedureUtils.executeUpdate(deleteSql, tx);
     
         for (Object[] insertItem : insertHistory){
             int id = (Integer) insertItem[insertItem.length - 1];
