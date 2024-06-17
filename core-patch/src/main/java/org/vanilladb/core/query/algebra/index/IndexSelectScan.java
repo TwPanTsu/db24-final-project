@@ -15,6 +15,9 @@
  *******************************************************************************/
 package org.vanilladb.core.query.algebra.index;
 
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 import org.vanilladb.core.query.algebra.Scan;
 import org.vanilladb.core.query.algebra.TableScan;
 import org.vanilladb.core.query.algebra.UpdateScan;
@@ -67,6 +70,7 @@ public class IndexSelectScan implements UpdateScan {
 	 * 
 	 * @see Scan#next()
 	 */
+	private int count = 0;
 	@Override
 	public boolean next() {
 		boolean ok = idx.next();
