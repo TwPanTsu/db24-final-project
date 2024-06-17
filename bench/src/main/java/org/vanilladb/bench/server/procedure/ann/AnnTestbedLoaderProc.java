@@ -68,11 +68,11 @@ public class AnnTestbedLoaderProc extends StoredProcedure<AnnTestbedLoaderParamH
 
         // Skip adding indexes
 
-        // if (logger.isLoggable(Level.INFO))
+        //f (logger.isLoggable(Level.INFO))
         //     logger.info("Creating indexes...");
 
         // // Create indexes
-        // for (String sql : paramHelper.getIndexSchemas())
+        //for (String sql : paramHelper.getIndexSchemas())
         //     StoredProcedureUtils.executeUpdate(sql, tx);
         
         if (logger.isLoggable(Level.FINE))

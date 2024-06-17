@@ -652,10 +652,11 @@ public class Parser {
 			} else if (lex.matchKeyword("btree")) {
 				lex.eatKeyword("btree");
 				idxType = IndexType.BTREE;
-			} else if (lex.matchKeyword("lsh")) {
-				lex.eatKeyword("lsh");
-				idxType = IndexType.LSH;
-			} else
+			} else if (lex.matchKeyword("ivf")) {
+				lex.eatKeyword("ivf");
+				idxType = IndexType.IVF;
+			}
+			else
 				throw new UnsupportedOperationException();
 		}
 		

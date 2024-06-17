@@ -73,4 +73,11 @@ public class SearchKeyType {
 			vals[i] = types[i].maxValue();
 		return new SearchKey(vals);
 	}
+	public int getVecIdx() {
+		for (int i = 0; i < types.length; i++)
+			if (types[i].getSqlType() == java.sql.Types.ARRAY)
+				return i;
+		
+		throw new IllegalArgumentException("No vector field in the table");
+	}
 }
