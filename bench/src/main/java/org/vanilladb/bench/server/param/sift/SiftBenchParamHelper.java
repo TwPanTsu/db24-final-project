@@ -43,6 +43,9 @@ public class SiftBenchParamHelper implements StoredProcedureHelper {
                 ptr = ptr + numDimension + 2;
             }
         }
+        for (int i = 0; i < numNeighbors; i++) {
+            items[i] = i+1;
+        }
     }
 
     @Override
