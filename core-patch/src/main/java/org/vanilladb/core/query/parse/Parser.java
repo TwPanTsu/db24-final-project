@@ -655,7 +655,11 @@ public class Parser {
 			} else if (lex.matchKeyword("lsh")) {
 				lex.eatKeyword("lsh");
 				idxType = IndexType.LSH;
-			} else
+			} else if (lex.matchKeyword("ivfflat")) {
+				lex.eatKeyword("ivfflat");
+				idxType = IndexType.IVFFlat;
+			} 
+			else
 				throw new UnsupportedOperationException();
 		}
 		
