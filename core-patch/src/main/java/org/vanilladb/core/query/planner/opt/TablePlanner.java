@@ -30,10 +30,14 @@ import org.vanilladb.core.query.algebra.vector.NearestNeighborPlan;
 import org.vanilladb.core.query.planner.index.IndexSelector;
 import org.vanilladb.core.server.VanillaDb;
 import org.vanilladb.core.sql.Schema;
+import org.vanilladb.core.sql.VectorConstant;
 import org.vanilladb.core.sql.distfn.DistanceFn;
+import org.vanilladb.core.sql.distfn.IntDistanceFn;
 import org.vanilladb.core.sql.predicate.Predicate;
 import org.vanilladb.core.storage.metadata.index.IndexInfo;
 import org.vanilladb.core.storage.tx.Transaction;
+
+import org.vanilladb.core.query.algebra.index.IndexSelectVecPlan;
 
 /**
  * This class contains methods for planning a single table.
@@ -47,7 +51,7 @@ class TablePlanner {
 	private int id;
 	private int hashCode;
 
-	private DistanceFn embField;
+	private IntDistanceFn embField;
 
 	/**
 	 * Creates a new table planner. The specified predicate applies to the
@@ -72,7 +76,7 @@ class TablePlanner {
 		sch = tp.schema();
 	}
 
-	public TablePlanner(String tblName, Predicate pred, List<DistanceFn> embFields, Transaction tx, int id) {
+	public TablePlanner(String tblName, Predicate pred, List<IntDistanceFn> embFields, Transaction tx, int id) {
 		this.tblName = tblName;
 		this.pred = pred;
 		this.tx = tx;
@@ -82,7 +86,7 @@ class TablePlanner {
 		sch = tp.schema();
 
 		// Two tables cannot have the same embedding field names
-		for (DistanceFn embField : embFields) {
+		for (IntDistanceFn embField : embFields) {
 			if (sch.hasField(embField.fieldName())) {
 				this.embField = embField;
 				break;
@@ -113,6 +117,8 @@ class TablePlanner {
 	 * 
 	 * @return a select plan for the table.
 	 */
+	// 用 makeIndexSelectPlan() 找看看能不能用 Index 加速
+	// 要找 ANN (embField != null) 的話，就開NearestNeighborPlan()包住現在的plan
 	public Plan makeSelectPlan() {
 		Plan p = makeIndexSelectPlan();
 		if (p == null)
@@ -175,7 +181,17 @@ class TablePlanner {
 	 * that help the identification: e.g., "F < C", not "F - C < 0".
 	 */
 	private Plan makeIndexSelectPlan() {
+		if(embField != null){
+			// 找找看在 DB 存的 IndexInfo 有沒有符合這個 tableName 和 FieldName 的。
+			List<IndexInfo> iis = VanillaDb.catalogMgr().getIndexInfo(tblName, embField.fieldName(), tx);
+			// 有的話就加個 IndexSelectVecPlan()，在本來的TablePlan上
+			if(!iis.isEmpty())
+				return new IndexSelectVecPlan(tp, iis.get(0), embField.queryVector(), tx);
+		}
+		// 用一些方法找最好的 Index(原本的code只有面這行)，
+		// 但因為我們只有一種IndexPlan，所以要做ANN的話只會走上面。
 		return IndexSelector.selectByBestMatchedIndex(tblName, tp, pred, tx);
+		
 	}
 
 	/**

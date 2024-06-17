@@ -31,6 +31,9 @@ public abstract class Type {
 	public static Type VECTOR(int size) {
 		return new VectorType(size);
 	}
+	public static Type INTVECTOR(int size) {
+		return new Int8VectorType(size);
+	}
 
 	/**
 	 * Constructs a new instance corresponding to the specified SQL type and

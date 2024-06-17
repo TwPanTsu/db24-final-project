@@ -31,9 +31,9 @@ public class ProjectPlan implements Plan {
 	 * fields.
 	 * 
 	 * @param hist
-	 *            the input join distribution of field values
+	 *                 the input join distribution of field values
 	 * @param fldNames
-	 *            the names of fields to project to
+	 *                 the names of fields to project to
 	 * @return join distribution of projected values
 	 */
 	public static Histogram projectHistogram(Histogram hist,
@@ -53,15 +53,15 @@ public class ProjectPlan implements Plan {
 	 * subquery and field list.
 	 * 
 	 * @param p
-	 *            the subquery
+	 *                 the subquery
 	 * @param fldNames
-	 *            the list of fields
+	 *                 the list of fields
 	 */
 	public ProjectPlan(Plan p, Set<String> fldNames) {
 		this.p = p;
 		for (String fldname : fldNames)
 			schema.add(fldname, p.schema());
-		hist = projectHistogram(p.histogram(), fldNames);
+		hist = projectHistogram(p.histogram(), fldNames);// deletable?
 	}
 
 	/**

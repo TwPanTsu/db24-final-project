@@ -31,6 +31,8 @@ public abstract class Constant implements Comparable<Constant> {
 	private static final Constant defaultDouble = new DoubleConstant(0);
 	private static final Constant defaultVarchar = new VarcharConstant("");
 	private static final Constant defaultVector = VectorConstant.zeros(1);
+	private static final Constant defaultIntVector = Int8VectorConstant.zeros(1);
+
 
 	/**
 	 * Constructs a new instance of the specified type with value converted from
@@ -55,6 +57,8 @@ public abstract class Constant implements Comparable<Constant> {
 			return new VarcharConstant(val, type);
 		case (ARRAY):
 			return new VectorConstant(val);
+		case (2000):
+			return new Int8VectorConstant(val);
 		}
 		throw new UnsupportedOperationException("Unspported SQL type: " + type.getSqlType());
 	}
@@ -80,6 +84,8 @@ public abstract class Constant implements Comparable<Constant> {
 			return defaultVarchar;
 		case (ARRAY):
 			return defaultVector;
+		case (2000):
+			return defaultIntVector;
 		}
 		throw new UnsupportedOperationException("Unspported SQL type: " + type.getSqlType());
 	}

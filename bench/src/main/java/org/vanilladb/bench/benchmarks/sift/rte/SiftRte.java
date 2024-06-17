@@ -66,6 +66,35 @@ public class SiftRte extends RemoteTerminalEmulator<SiftTransactionType> {
         return executor;
     }
 
+    private static void printProgress(int current, int total, long startTime) {
+        int barLength = 50;
+        int progress = (int) ((current / (double) total) * barLength);
+        StringBuilder progressBar = new StringBuilder("[");
+
+        for (int i = 0; i < barLength; i++) {
+            if (i < progress) {
+                progressBar.append("=");
+            } else {
+                progressBar.append(" ");
+            }
+        }
+        progressBar.append("] ").append(current).append("/").append(total);
+
+        long currentTime = System.currentTimeMillis();
+        long elapsedTime = currentTime - startTime;
+        long estimatedTotalTime = (elapsedTime * total) / (current == 0 ? 1 : current);
+        long estimatedRemainingTime = estimatedTotalTime - elapsedTime;
+
+        long remainingSeconds = estimatedRemainingTime / 1000;
+        long remainingMinutes = remainingSeconds / 60;
+        remainingSeconds %= 60;
+
+        String eta = String.format(" ETA: %02d:%02d", remainingMinutes, remainingSeconds);
+        progressBar.append(eta);
+
+        System.out.print("\r" + progressBar.toString());
+    }
+
     public void executeCalculateRecall(SutConnection conn) throws SQLException {
         List<Double> recallList = new ArrayList<>();
         List<Map.Entry<VectorConstant, Integer>> insertMapList = new ArrayList<>(insertMap.entrySet());
@@ -79,7 +108,10 @@ public class SiftRte extends RemoteTerminalEmulator<SiftTransactionType> {
         //     System.out.println();
         // }
         // System.out.println("==========");
-
+        int total_size = insertMapList.size();
+        int curr_process = 0;
+        long startTime = System.currentTimeMillis();
+        System.out.println("Commited: " + total_size);
         for (Map.Entry<VectorConstant, Integer> entry : insertMapList) {
             VectorConstant query = entry.getKey();
             int insertCount = entry.getValue();
@@ -118,6 +150,9 @@ public class SiftRte extends RemoteTerminalEmulator<SiftTransactionType> {
             double recallRate = (double) approximateNeighbors.size() / trueNeighbors.size();
 
             recallList.add(recallRate);
+            if(curr_process%10 == 0)
+                printProgress(curr_process, total_size, startTime);
+            curr_process += 1;
         }
 
         double sum = 0;

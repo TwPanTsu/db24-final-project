@@ -38,5 +38,16 @@ public class LimitPlan implements Plan {
     public long recordsOutput() {
         return limit;
     }
-    
+
+    @Override
+    public String toString() {
+        String c = child.toString();
+        String[] cs = c.split("\n");
+        StringBuilder sb = new StringBuilder();
+        sb.append("->LimitPlan (#blks="
+                + blocksAccessed() + ", #recs=" + recordsOutput() + ")\n");
+        for (String child : cs)
+            sb.append("\t").append(child).append("\n");
+        return sb.toString();
+    }
 }

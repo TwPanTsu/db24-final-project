@@ -45,6 +45,7 @@ public class HeuristicQueryPlanner implements QueryPlanner {
 	@Override
 	public Plan createPlan(QueryData data, Transaction tx) {
 		// Step 1: Create a TablePlanner object for each mentioned table/view
+		// 開TablePlan
 		int id = 0;
 		for (String tbl : data.tables()) {
 			String viewdef = VanillaDb.catalogMgr().getViewDef(tbl, tx);
@@ -57,6 +58,7 @@ public class HeuristicQueryPlanner implements QueryPlanner {
 			id += 1;
 		}
 		// Step 2: Choose the lowest-size plan to begin the trunk of join
+		// 在getLowestSelectPlan()找比較好的TablePlan的組合方式
 		Plan trunk = getLowestSelectPlan();
 		// Step 3: Repeatedly add a plan to the join trunk
 		while (!tablePlanners.isEmpty() || !views.isEmpty()) {
@@ -83,13 +85,16 @@ public class HeuristicQueryPlanner implements QueryPlanner {
 		// Step 7: Add a limit plan if specified
 		if (data.limit() != -1)
 			trunk = new LimitPlan(trunk, data.limit());
-			
+
 		// Step 8: Add a explain plan if the query is explain statement
 		if (data.isExplain())
 			trunk = new ExplainPlan(trunk);
 		return trunk;
 	}
 
+	// 在 makeSelectPlan() 會看看 query 的條件中有沒有用建立 Index 的 field
+	// 有的話就幫他開對應的 IndexPlan (IndexPlan 的 childplan 會是主table 的 tablePlan
+	// ，IndexPlan藉由查詢之前 Index 建立的 table 來加速用特定 field 找 record 的 query)
 	private Plan getLowestSelectPlan() {
 		TablePlanner bestTp = null;
 		Plan bestPlan = null;

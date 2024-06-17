@@ -28,12 +28,12 @@ public class SiftCalculateRecallProc extends StoredProcedure<SiftBenchParamHelpe
         ArrayList<Object[]> insertHistory = paramHelper.getInsertHistory(); //[emb, id]
 
         String deleteSql = String.format("DELETE FROM %s WHERE i_id >= %d", paramHelper.getTableName(), SiftBenchConstants.NUM_ITEMS);
-        try {
-            StoredProcedureUtils.executeUpdate(deleteSql, tx);
-            Thread.sleep(100);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+        StoredProcedureUtils.executeUpdate(deleteSql, tx);
+        // try {
+            // Thread.sleep(100);
+        // } catch (InterruptedException e) {
+            // e.printStackTrace();
+        // }
     
         for (Object[] insertItem : insertHistory){
             int id = (Integer) insertItem[insertItem.length - 1];

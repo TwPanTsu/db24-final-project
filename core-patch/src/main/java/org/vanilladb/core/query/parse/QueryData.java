@@ -26,6 +26,8 @@ import org.vanilladb.core.sql.aggfn.AggregationFn;
 import org.vanilladb.core.sql.distfn.DistanceFn;
 import org.vanilladb.core.sql.predicate.Predicate;
 
+import org.vanilladb.core.sql.distfn.IntDistanceFn;
+
 /**
  * Data for the SQL <em>select</em> and <em>explain</em> statements.
  */
@@ -37,7 +39,7 @@ public class QueryData {
 	private Set<AggregationFn> aggFn;
 	private List<String> sortFields;
 	private List<Integer> sortDirs;
-	private List<DistanceFn> embFields;
+	private List<IntDistanceFn> embFields;
 	private boolean isExplain;
 	private int limit;
 
@@ -62,7 +64,7 @@ public class QueryData {
 	 *            a list of sort directions
 	 */
 	public QueryData(boolean isExplain, Set<String> projFields, Set<String> tables, Predicate pred,
-			Set<String> groupFields, Set<AggregationFn> aggFn, List<String> sortFields, List<Integer> sortDirs, List<DistanceFn> embFields, int limit) {
+			Set<String> groupFields, Set<AggregationFn> aggFn, List<String> sortFields, List<Integer> sortDirs, List<IntDistanceFn> embFields, int limit) {
 		this.isExplain = isExplain;
 		this.projFields = projFields;
 		this.tables = tables;
@@ -140,7 +142,7 @@ public class QueryData {
 		return aggFn;
 	}
 
-	public List<DistanceFn> embeddingFields() {
+	public List<IntDistanceFn> embeddingFields() {
 		return embFields;
 	}
 

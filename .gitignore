@@ -21,3 +21,12 @@ target/
 ### Others ###
 design
 
+### KNN data ###
+clusters_output*
+clusters_output_900000_3000
+cluster_output_900_9
+clusters_output_900_9
+test.java
+
+# 
+sift.txt

@@ -63,6 +63,10 @@ import org.vanilladb.core.sql.predicate.Term;
 import org.vanilladb.core.storage.index.IndexType;
 import org.vanilladb.core.util.CoreProperties;
 
+import org.vanilladb.core.sql.Int8VectorConstant;
+
+import org.vanilladb.core.sql.distfn.IntDistanceFn;
+import org.vanilladb.core.sql.distfn.IntEuclideanFn;
 /**
  * The VanillaDb parser. Note that VanillaDb parser cannot parse double value in
  * scientific notation.
@@ -243,7 +247,7 @@ public class Parser {
 		return list;
 	}
 
-	private List<DistanceFn> embFields = new ArrayList<>();
+	private List<IntDistanceFn> embFields = new ArrayList<>();
 
 	/*
 	 * Methods for parsing queries.
@@ -412,19 +416,23 @@ public class Parser {
 
 				if (lex.matchDelim('<')) {
 					lex.eatDelim('<');
-					DistanceFn distFn;
+					IntDistanceFn distFn;
 					if (lex.matchKeyword("cos")) {
 						lex.eatKeyword("cos");
-						distFn = new CosineFn(fld);
+						throw new RuntimeException("No <cos> implementaion for int8vector");
+						//distFn = new CosineFn(fld);
 					} else if (lex.matchKeyword("euc")) {
 						lex.eatKeyword("euc");
-						distFn = new EuclideanFn(fld);
+						distFn = new IntEuclideanFn(fld);
 					} else {
 						throw new UnsupportedOperationException("Invalid distance function");
 					}
 					lex.eatDelim('>');
 
-					VectorConstant queryVec = new VectorConstant(lex.eatVectorConstant());
+					// 取得要 query 的 vector ，並將其記錄在 distFn 
+					// ，之可通過distFn.distance(other vector) 計算之間的距離
+					// embFields != null 代表在做 vector query
+					Int8VectorConstant queryVec = new Int8VectorConstant(lex.eatVectorConstant());
 					distFn.setQueryVector(queryVec);
 					embFields.add(distFn);
 				} else {
@@ -655,7 +663,10 @@ public class Parser {
 			} else if (lex.matchKeyword("lsh")) {
 				lex.eatKeyword("lsh");
 				idxType = IndexType.LSH;
-			} else
+			} else if (lex.matchKeyword("ivf")) {
+				lex.eatKeyword("ivf");
+				idxType = IndexType.IVF;
+			}else
 				throw new UnsupportedOperationException();
 		}
 		
