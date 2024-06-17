@@ -30,7 +30,7 @@ public class SiftCalculateRecallProc extends StoredProcedure<SiftBenchParamHelpe
         String deleteSql = String.format("DELETE FROM %s WHERE i_id >= %d", paramHelper.getTableName(), SiftBenchConstants.NUM_ITEMS);
         try {
             StoredProcedureUtils.executeUpdate(deleteSql, tx);
-            Thread.sleep(100);
+            Thread.sleep(1);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }

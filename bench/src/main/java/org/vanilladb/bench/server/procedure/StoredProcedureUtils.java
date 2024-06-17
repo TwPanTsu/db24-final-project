@@ -23,17 +23,27 @@ import java.util.PriorityQueue;
 
 import static org.vanilladb.core.sql.RecordComparator.DIR_DESC;
 
+import org.vanilladb.bench.benchmarks.sift.SiftBenchConstants;
+import org.vanilladb.bench.util.RandomNonRepeatGenerator;
 import org.vanilladb.core.query.algebra.Plan;
 import org.vanilladb.core.query.algebra.Scan;
 import org.vanilladb.core.query.algebra.TablePlan;
+import org.vanilladb.core.query.algebra.UpdateScan;
 import org.vanilladb.core.query.parse.InsertData;
 import org.vanilladb.core.server.VanillaDb;
 import org.vanilladb.core.sql.Constant;
 import org.vanilladb.core.sql.Record;
 import org.vanilladb.core.sql.RecordComparator;
+import org.vanilladb.core.sql.Type;
 import org.vanilladb.core.sql.VectorConstant;
+import org.vanilladb.core.sql.VectorType;
 import org.vanilladb.core.sql.distfn.DistanceFn;
 import org.vanilladb.core.sql.distfn.EuclideanFn;
+import org.vanilladb.core.storage.buffer.EmptyPageFormatter;
+import org.vanilladb.core.storage.index.SearchKey;
+import org.vanilladb.core.storage.index.SearchKeyType;
+import org.vanilladb.core.storage.index.ivf.IVFSq8DirectIndex;
+import org.vanilladb.core.storage.record.RecordId;
 import org.vanilladb.core.storage.tx.Transaction;
 
 public class StoredProcedureUtils {
@@ -45,6 +55,132 @@ public class StoredProcedureUtils {
 	
 	public static int executeUpdate(String sql, Transaction tx) {
 		return VanillaDb.newPlanner().executeUpdate(sql, tx);
+	}
+
+	public static void executeTrainIndex(String tableName, List<String> idxFields, String idxName, Transaction tx) {
+		// Obtain metadata about the index to be trained
+		IVFSq8DirectIndex idx = (IVFSq8DirectIndex)VanillaDb.catalogMgr().getIndexInfoByName(idxName, tx).open(tx);
+		String field = idxFields.get(0);
+		// Throws an exception if the type cast fails
+		Type idxType = (VectorType)VanillaDb.catalogMgr().getTableInfo(tableName, tx).schema().type(field);
+		int dim = idxType.getArgument();
+
+		for (int i = 0; i < IVFSq8DirectIndex.numCentroidBlocks(new SearchKeyType(idxType)); ++i)
+			tx.bufferMgr().pinNew(idx.centroidName(), new EmptyPageFormatter());
+
+		//Initialize centroids------------------------------------------------------------------------
+		RandomNonRepeatGenerator RNRG = new RandomNonRepeatGenerator(SiftBenchConstants.NUM_ITEMS);
+		Map<Integer, Integer> M = new HashMap<>();
+		for (int i = 0; i < IVFSq8DirectIndex.NUM_CENTROIDS; ++i){
+			int random_number = RNRG.next();
+			M.put(random_number,i);
+		}
+		
+		Plan test_tp = new TablePlan(tableName, tx);
+		Scan test_ts = test_tp.open();
+		test_ts.beforeFirst();
+		while(test_ts.next()){
+			int index = (Integer)test_ts.getVal("i_id").asJavaVal();
+			if(M.containsKey(index)){
+				VectorConstant v = new VectorConstant((float[])test_ts.getVal("i_emb").asJavaVal());
+				idx.setCentroidVector(M.get(index), v);
+			}
+		}
+		test_ts.close();
+		//----------------------------------------------------------------------------------------------
+
+		//Refine centroids------------------------------------------------------------------------------
+		int iteration = 1;
+
+		for (int i = 0; i < iteration; i++){
+			System.err.print("Iteration " + i + "\n");
+			Plan tp = new TablePlan(tableName, tx);
+			Scan ts = tp.open();
+			
+			VectorConstant[] sum = new VectorConstant[IVFSq8DirectIndex.NUM_CENTROIDS];
+			for (int j = 0; j < IVFSq8DirectIndex.NUM_CENTROIDS; j++){
+				sum[j] =  VectorConstant.zeros(dim);
+			}
+
+			int [] num_of_points = new int[IVFSq8DirectIndex.NUM_CENTROIDS];
+
+			//cluster the data points
+			ts.beforeFirst();
+			while(ts.next()){
+				VectorConstant temp;	// a copy of a record of the table
+
+				// Two field:
+				// 1: i_emb(VectorConstant) 
+				// 2: i_id(IntegerConstant)
+
+				temp = (VectorConstant)ts.getVal("i_emb");
+
+				float min_dist = Float.MAX_VALUE;
+				int belongsTo = 0;
+
+				EuclideanFn fn = new EuclideanFn("i_emb"); //i don't know wtf
+				fn.setQueryVector(temp);
+				for (int j  = 0; j < IVFSq8DirectIndex.NUM_CENTROIDS; j++){
+					VectorConstant center = idx.getCentroidVector(j);
+					float distance = (float)fn.distance(center);
+ 					if( distance < min_dist){
+						min_dist = distance;
+						belongsTo = j;
+					}
+				}
+
+				num_of_points[belongsTo]++;
+				sum[belongsTo] = (VectorConstant)sum[belongsTo].add(temp);
+
+				//Update centroid (Mini-batch kmeans)
+				if (((Integer)ts.getVal("i_id").asJavaVal()) % 10000 == 0){
+					VectorConstant[] avg = new VectorConstant[IVFSq8DirectIndex.NUM_CENTROIDS];
+					for(int j = 0; j < IVFSq8DirectIndex.NUM_CENTROIDS; j++){
+						System.err.print("number of points: " + num_of_points[j] + " in" + " cluster " + j + "\n");
+						avg[j] = (VectorConstant)sum[j].div_by_int(num_of_points[j]);
+					}
+					for(int j = 0; j < IVFSq8DirectIndex.NUM_CENTROIDS; j++){
+						if(num_of_points[j] != 0){
+							idx.setCentroidVector(j, avg[j]);
+						}
+					}
+				}
+
+			}
+
+			// Update centroid
+			// for(int j = 0; j < IVFSq8DirectIndex.NUM_CENTROIDS; j++){
+			// 	// System.err.print("number of points: " + num_of_points[j] + " in" + " cluster " + j + "\n");
+			// 	sum[j] = (VectorConstant)sum[j].div_by_int(num_of_points[j]);
+			// }
+			// for(int j = 0; j < IVFSq8DirectIndex.NUM_CENTROIDS; j++){
+			// 	idx.setCentroidVector(j, sum[j]);
+			// }
+			
+			ts.close();
+		}
+		//----------------------------------------------------------------------------------------------
+
+
+		// Build the index
+		// Write the records into their corresponding clusters (tables)
+		Plan p = new TablePlan(tableName, tx);
+		UpdateScan s = (UpdateScan)p.open();
+		s.beforeFirst();
+		// int i = 0;
+		// System.err.print(i + "/900000\r");
+		while (s.next()) {
+			// Construct a map from field names to values
+			Map<String, Constant> fldValMap = new HashMap<String, Constant>();
+			for (String fldname : p.schema().fields())
+				fldValMap.put(fldname, s.getVal(fldname));
+			RecordId rid = s.getRecordId();
+
+			idx.insert(new SearchKey(p.schema().fields(), fldValMap), rid, false);
+			// if (++i % 900 == 0)
+			// 	System.err.print(i + "/900000\r");
+		}
+		s.close();
 	}
 
 	static class MapRecord implements Record{

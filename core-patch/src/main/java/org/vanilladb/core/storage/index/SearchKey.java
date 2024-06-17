@@ -16,8 +16,8 @@
 package org.vanilladb.core.storage.index;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 
 import org.vanilladb.core.sql.Constant;
@@ -41,7 +41,7 @@ public class SearchKey implements Comparable<SearchKey> {
 	 * @throws NullPointerException
 	 *             if there is a missing value
 	 */
-	public SearchKey(List<String> indexedFields, Map<String, Constant> fldValMap) {
+	public SearchKey(Collection<String> indexedFields, Map<String, Constant> fldValMap) {
 		vals = new Constant[indexedFields.size()];
 		Iterator<String> fldNameIter = indexedFields.iterator();
 		String fldName;

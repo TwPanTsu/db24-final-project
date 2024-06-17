@@ -37,7 +37,19 @@ public class VanillaBench {
 
 		try {
 			SutConnection con = getConnection();
+			if (VanillaBenchParameters.PROFILING_ON_SERVER) {
+				if (logger.isLoggable(Level.INFO))
+					logger.info("starting the profiler on the server-side");
+
+				benchmarker.startProfilingProcedure(getConnection());
+			}
 			benchmarker.executeLoadingProcedure(con);
+			if (VanillaBenchParameters.PROFILING_ON_SERVER) {
+				if (logger.isLoggable(Level.INFO))
+					logger.info("stoping the profiler on the server-side");
+
+				benchmarker.stopProfilingProcedure(getConnection());
+			}
 		} catch (SQLException e) {
 			if (logger.isLoggable(Level.SEVERE))
 				logger.severe("Error: " + e.getMessage());

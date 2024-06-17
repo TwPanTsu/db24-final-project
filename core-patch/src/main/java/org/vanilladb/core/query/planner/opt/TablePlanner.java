@@ -48,6 +48,7 @@ class TablePlanner {
 	private int hashCode;
 
 	private DistanceFn embField;
+	private int limit;
 
 	/**
 	 * Creates a new table planner. The specified predicate applies to the
@@ -67,16 +68,18 @@ class TablePlanner {
 		this.pred = pred;
 		this.tx = tx;
 		this.id = id;
+		this.limit = -1;
 		this.hashCode = (int) Math.pow(2, id);
 		tp = new TablePlan(tblName, tx);
 		sch = tp.schema();
 	}
 
-	public TablePlanner(String tblName, Predicate pred, List<DistanceFn> embFields, Transaction tx, int id) {
+	public TablePlanner(String tblName, Predicate pred, List<DistanceFn> embFields, int limit, Transaction tx, int id) {
 		this.tblName = tblName;
 		this.pred = pred;
 		this.tx = tx;
 		this.id = id;
+		this.limit = limit;
 		this.hashCode = (int) Math.pow(2, id);
 		tp = new TablePlan(tblName, tx);
 		sch = tp.schema();
@@ -119,7 +122,7 @@ class TablePlanner {
 			p = tp;
 		p =  addSelectPredicate(p);
 		if (embField != null) {
-			p = new NearestNeighborPlan(p, embField, tx);
+			p = new NearestNeighborPlan(p, embField, limit, tx);
 		}
 		return p;
 	}
@@ -175,7 +178,7 @@ class TablePlanner {
 	 * that help the identification: e.g., "F < C", not "F - C < 0".
 	 */
 	private Plan makeIndexSelectPlan() {
-		return IndexSelector.selectByBestMatchedIndex(tblName, tp, pred, tx);
+		return IndexSelector.selectByBestMatchedIndex(tblName, tp, pred, embField, tx);
 	}
 
 	/**

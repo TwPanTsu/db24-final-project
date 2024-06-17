@@ -11,6 +11,10 @@ public abstract class DistanceFn {
         this.fieldName = fieldName;
     }
 
+    public VectorConstant getQueryVector() {
+        return query;
+    }
+
     public void setQueryVector(VectorConstant query) {
         this.query = query;
     }

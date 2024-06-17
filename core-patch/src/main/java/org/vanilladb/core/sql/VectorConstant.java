@@ -3,6 +3,7 @@ package org.vanilladb.core.sql;
 import static java.sql.Types.VARCHAR;
 
 import java.io.Serializable;
+import java.nio.ByteBuffer;
 
 import org.vanilladb.core.util.ByteHelper;
 
@@ -75,6 +76,16 @@ public class VectorConstant extends Constant implements Serializable {
         type = new VectorType(v.dimension());
     }
 
+    public VectorConstant(ByteVectorConstant v) {
+        // Direct SQ8 decoding
+        vec = new float[v.dimension()];
+        int i = 0;
+        for (byte e : v.asJavaVal()) {
+            vec[i++] = e + 128;
+        }
+        type = new VectorType(v.dimension());
+    }
+
     public VectorConstant(String vectorString) {
         String[] split = vectorString.split(" ");
 
@@ -95,11 +106,9 @@ public class VectorConstant extends Constant implements Serializable {
         type = new VectorType(length);
         // vec = new ArrayList<>(length);
         vec = new float[length];
+        ByteBuffer byteBuffer = ByteBuffer.wrap(bytes);
         for (int i = 0; i < length; i++) {
-            byte[] floatAsBytes = new byte[Float.BYTES];
-            int offset = i * Float.BYTES;
-            System.arraycopy(bytes, offset, floatAsBytes, 0, Float.BYTES);
-            vec[i] = ByteHelper.toFloat(floatAsBytes);
+            vec[i] = byteBuffer.getFloat();
         }
     }
 
@@ -164,6 +173,8 @@ public class VectorConstant extends Constant implements Serializable {
     public Constant castTo(Type type) {
         if (getType().equals(type))
             return this;
+        if (type instanceof ByteVectorType)
+            return new ByteVectorConstant(this);
         switch (type.getSqlType()) {
             case VARCHAR:
                 return new VarcharConstant(toString(), type);
@@ -221,6 +232,21 @@ public class VectorConstant extends Constant implements Serializable {
         }
         return new VectorConstant(res);
     }
+
+    public Constant div_by_int(int n) {
+        float[] res = new float[dimension()];
+        if(n!=0){
+            for (int i = 0; i < dimension(); i++) {
+                res[i] = this.get(i) / n;
+            }
+        }else{
+            for (int i = 0; i < dimension(); i++) {
+                res[i] = this.get(i);
+            }
+        }
+        return new VectorConstant(res);
+    }
+
 
     @Override
     public int compareTo(Constant c) {

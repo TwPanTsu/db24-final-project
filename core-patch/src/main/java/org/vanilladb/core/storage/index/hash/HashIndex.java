@@ -219,7 +219,7 @@ public class HashIndex extends Index {
 		while (next())
 			if (getDataRecordId().equals(dataRecordId)) {
 				rf.delete();
-				return;
+				break;
 			}
 		
 		// log the logical operation ends

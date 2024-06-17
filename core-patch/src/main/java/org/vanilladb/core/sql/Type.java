@@ -32,6 +32,10 @@ public abstract class Type {
 		return new VectorType(size);
 	}
 
+	public static Type BYTEVECTOR(int size) {
+		return new ByteVectorType(size);
+	}
+
 	/**
 	 * Constructs a new instance corresponding to the specified SQL type and
 	 * argument.

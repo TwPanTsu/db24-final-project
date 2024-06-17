@@ -20,6 +20,7 @@ import static java.sql.Types.DOUBLE;
 import static java.sql.Types.INTEGER;
 import static java.sql.Types.VARCHAR;
 import static java.sql.Types.ARRAY;
+import static java.sql.Types.BINARY;
 
 /**
  * An abstract class that denotes a value of a supported {@link Type type}.
@@ -31,6 +32,7 @@ public abstract class Constant implements Comparable<Constant> {
 	private static final Constant defaultDouble = new DoubleConstant(0);
 	private static final Constant defaultVarchar = new VarcharConstant("");
 	private static final Constant defaultVector = VectorConstant.zeros(1);
+	private static final Constant defaultByteVector = ByteVectorConstant.zeros(1);
 
 	/**
 	 * Constructs a new instance of the specified type with value converted from
@@ -55,6 +57,8 @@ public abstract class Constant implements Comparable<Constant> {
 			return new VarcharConstant(val, type);
 		case (ARRAY):
 			return new VectorConstant(val);
+		case (BINARY):
+			return new ByteVectorConstant(val);
 		}
 		throw new UnsupportedOperationException("Unspported SQL type: " + type.getSqlType());
 	}
@@ -80,6 +84,8 @@ public abstract class Constant implements Comparable<Constant> {
 			return defaultVarchar;
 		case (ARRAY):
 			return defaultVector;
+		case (BINARY):
+			return defaultByteVector;
 		}
 		throw new UnsupportedOperationException("Unspported SQL type: " + type.getSqlType());
 	}

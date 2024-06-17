@@ -40,10 +40,10 @@ import org.vanilladb.core.storage.tx.Transaction;
  * The {@link Plan} class for the <em>sort</em> operator.
  */
 public class SortPlan implements Plan {
-	private Plan p;
-	private Comparator<Record> comp;
-	private Transaction tx;
-	private Schema schema;
+	protected Plan p;
+	protected Comparator<Record> comp;
+	protected Transaction tx;
+	protected Schema schema;
 
 	private List<String> sortFlds;
 	private List<Integer> sortDirs;

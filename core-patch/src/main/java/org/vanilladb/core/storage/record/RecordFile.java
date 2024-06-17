@@ -190,14 +190,16 @@ public class RecordFile implements Record {
 		try {
 			// Log that this logical operation starts
 			RecordId deletedRid = currentRecordId();
-			tx.recoveryMgr().logLogicalStart();
+			if (doLog)
+				tx.recoveryMgr().logLogicalStart();
 	
 			// Delete the current record
 			rp.delete(fhp.getLastDeletedSlot());
 			fhp.setLastDeletedSlot(currentRecordId());
 	
 			// Log that this logical operation ends
-			tx.recoveryMgr().logRecordFileDeletionEnd(ti.tableName(), deletedRid.block().number(), deletedRid.id());
+			if (doLog)
+				tx.recoveryMgr().logRecordFileDeletionEnd(ti.tableName(), deletedRid.block().number(), deletedRid.id());
 		} finally {
 			// Close the header (release the header latch)
 			closeHeader();
@@ -239,7 +241,8 @@ public class RecordFile implements Record {
 		
 		try {
 			// Log that this logical operation starts
-			tx.recoveryMgr().logLogicalStart();
+			if (doLog)
+				tx.recoveryMgr().logLogicalStart();
 	
 			if (fhp.hasDeletedSlots()) {
 				// Insert into a deleted slot
@@ -269,8 +272,10 @@ public class RecordFile implements Record {
 			}
 	
 			// Log that this logical operation ends
-			RecordId insertedRid = currentRecordId();
-			tx.recoveryMgr().logRecordFileInsertionEnd(ti.tableName(), insertedRid.block().number(), insertedRid.id());
+			if (doLog) {
+				RecordId insertedRid = currentRecordId();
+				tx.recoveryMgr().logRecordFileInsertionEnd(ti.tableName(), insertedRid.block().number(), insertedRid.id());
+			}
 		} finally {
 			// Close the header (release the header latch)
 			closeHeader();
@@ -299,7 +304,8 @@ public class RecordFile implements Record {
 
 		try {
 			// Log that this logical operation starts
-			tx.recoveryMgr().logLogicalStart();
+			if (doLog)
+				tx.recoveryMgr().logLogicalStart();
 	
 			// Mark the specified slot as in used
 			moveToRecordId(rid);
@@ -330,7 +336,8 @@ public class RecordFile implements Record {
 			}
 	
 			// Log that this logical operation ends
-			tx.recoveryMgr().logRecordFileInsertionEnd(ti.tableName(), rid.block().number(), rid.id());
+			if (doLog)
+				tx.recoveryMgr().logRecordFileInsertionEnd(ti.tableName(), rid.block().number(), rid.id());
 		} finally {
 			// Close the header (release the header latch)
 			closeHeader();

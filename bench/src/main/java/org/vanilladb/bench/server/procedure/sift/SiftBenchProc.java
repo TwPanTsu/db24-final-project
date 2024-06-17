@@ -40,8 +40,9 @@ public class SiftBenchProc extends StoredProcedure<SiftBenchParamHelper> {
 
         nearestNeighborScan.close();
 
-        if (count == 0)
-            throw new RuntimeException("Nearest neighbor query execution failed for " + query.toString());
+        if (count == 0 || nearestNeighbors.size() != paramHelper.getK())
+            throw new RuntimeException("Nearest neighbor query execution failed for " + query.toString()
+                    + " (found " + nearestNeighbors.size() + " neighbors)");
         
         paramHelper.setNearestNeighbors(nearestNeighbors);
     }

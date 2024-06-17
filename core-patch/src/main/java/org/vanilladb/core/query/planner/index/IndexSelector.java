@@ -26,6 +26,8 @@ import org.vanilladb.core.query.algebra.TablePlan;
 import org.vanilladb.core.query.algebra.index.IndexSelectPlan;
 import org.vanilladb.core.server.VanillaDb;
 import org.vanilladb.core.sql.ConstantRange;
+import org.vanilladb.core.sql.VectorConstantRange;
+import org.vanilladb.core.sql.distfn.DistanceFn;
 import org.vanilladb.core.sql.predicate.Predicate;
 import org.vanilladb.core.storage.index.IndexType;
 import org.vanilladb.core.storage.metadata.index.IndexInfo;
@@ -34,23 +36,23 @@ import org.vanilladb.core.storage.tx.Transaction;
 public class IndexSelector {
 
 	public static IndexSelectPlan selectByBestMatchedIndex(String tblName,
-			TablePlan tablePlan, Predicate pred, Transaction tx) {
+			TablePlan tablePlan, Predicate pred, DistanceFn embField, Transaction tx) {
 		
 		Set<IndexInfo> candidates = new HashSet<IndexInfo>();
 		for (String fieldName : VanillaDb.catalogMgr().getIndexedFields(tblName, tx)) {
 			ConstantRange searchRange = pred.constantRange(fieldName);
-			if (searchRange == null)
+			if (searchRange == null && embField == null)
 				continue;
 			
 			List<IndexInfo> iis = VanillaDb.catalogMgr().getIndexInfo(tblName, fieldName, tx);
 			candidates.addAll(iis);
 		}
 		
-		return selectByBestMatchedIndex(candidates, tablePlan, pred, tx);
+		return selectByBestMatchedIndex(candidates, tablePlan, pred, embField, tx);
 	}
 	
 	public static IndexSelectPlan selectByBestMatchedIndex(String tblName,
-			TablePlan tablePlan, Predicate pred, Transaction tx, Collection<String> excludedFields) {
+			TablePlan tablePlan, Predicate pred, DistanceFn embField, Transaction tx, Collection<String> excludedFields) {
 		
 		Set<IndexInfo> candidates = new HashSet<IndexInfo>();
 		for (String fieldName : VanillaDb.catalogMgr().getIndexedFields(tblName, tx)) {
@@ -58,7 +60,7 @@ public class IndexSelector {
 				continue;
 			
 			ConstantRange searchRange = pred.constantRange(fieldName);
-			if (searchRange == null)
+			if (searchRange == null && embField == null)
 				continue;
 			
 			List<IndexInfo> iis = VanillaDb.catalogMgr().getIndexInfo(tblName, fieldName, tx);
@@ -75,11 +77,11 @@ public class IndexSelector {
 			}
 		}
 		
-		return selectByBestMatchedIndex(candidates, tablePlan, pred, tx);
+		return selectByBestMatchedIndex(candidates, tablePlan, pred, embField, tx);
 	}
 	
 	public static IndexSelectPlan selectByBestMatchedIndex(Set<IndexInfo> candidates,
-			TablePlan tablePlan, Predicate pred, Transaction tx) {
+			TablePlan tablePlan, Predicate pred, DistanceFn embField, Transaction tx) {
 		// Choose the index with the most matched fields in the predicate
 		int matchedCount = 0;
 		IndexInfo bestIndex = null;
@@ -91,9 +93,14 @@ public class IndexSelector {
 			
 			Map<String, ConstantRange> ranges = new HashMap<String, ConstantRange>();
 			for (String fieldName : ii.fieldNames()) {
-				ConstantRange searchRange = pred.constantRange(fieldName);
+				ConstantRange searchRange;
+				if (embField == null)
+					searchRange = pred.constantRange(fieldName);
+				else
+					searchRange = new VectorConstantRange(embField.getQueryVector().asJavaVal());
 				if (searchRange != null && (
 						(ii.indexType() == IndexType.HASH && searchRange.isConstant())
+						|| (ii.indexType() == IndexType.IVF_FLAT && embField != null)
 						|| ii.indexType() == IndexType.BTREE))
 					ranges.put(fieldName, searchRange);
 			}

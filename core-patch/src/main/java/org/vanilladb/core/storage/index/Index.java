@@ -15,8 +15,11 @@
  *******************************************************************************/
 package org.vanilladb.core.storage.index;
 
+import org.vanilladb.core.server.VanillaDb;
+import org.vanilladb.core.sql.Schema;
 import org.vanilladb.core.storage.index.btree.BTreeIndex;
 import org.vanilladb.core.storage.index.hash.HashIndex;
+import org.vanilladb.core.storage.index.ivf.IVFSq8DirectIndex;
 // import org.vanilladb.core.storage.index.lsh.LSHashIndex;
 import org.vanilladb.core.storage.metadata.index.IndexInfo;
 import org.vanilladb.core.storage.record.RecordId;
@@ -52,6 +55,8 @@ public abstract class Index {
 			return HashIndex.searchCost(keyType, totRecs, matchRecs);
 		else if (idxType == IndexType.BTREE)
 			return BTreeIndex.searchCost(keyType, totRecs, matchRecs);
+		else if (idxType == IndexType.IVF_FLAT)
+			return IVFSq8DirectIndex.searchCost(keyType, totRecs, matchRecs);
 		else
 			throw new IllegalArgumentException("unsupported index type");
 	}
@@ -63,7 +68,10 @@ public abstract class Index {
 			return new BTreeIndex(ii, keyType, tx);
 		// else if (ii.indexType() == IndexType.LSH)
 		// 	return new LSHashIndex(ii, keyType, tx);
-		else
+		else if (ii.indexType() == IndexType.IVF_FLAT) {
+			Schema tableSchema = VanillaDb.catalogMgr().getTableInfo(ii.tableName(), tx).schema();
+			return new IVFSq8DirectIndex(ii, keyType, tableSchema, tx);
+		} else
 			throw new IllegalArgumentException("unsupported index type");
 	}
 

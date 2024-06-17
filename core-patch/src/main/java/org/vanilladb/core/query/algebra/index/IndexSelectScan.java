@@ -21,6 +21,7 @@ import org.vanilladb.core.query.algebra.UpdateScan;
 import org.vanilladb.core.sql.Constant;
 import org.vanilladb.core.storage.index.Index;
 import org.vanilladb.core.storage.index.SearchRange;
+import org.vanilladb.core.storage.index.ivf.IVFSq8DirectIndex;
 import org.vanilladb.core.storage.record.RecordId;
 
 /**
@@ -30,6 +31,7 @@ public class IndexSelectScan implements UpdateScan {
 	private Index idx;
 	private TableScan ts;
 	private SearchRange searchRange;
+	private boolean readIdx;
 
 	/**
 	 * Creates an index select scan for the specified index and search range.
@@ -45,6 +47,7 @@ public class IndexSelectScan implements UpdateScan {
 		this.idx = idx;
 		this.searchRange = searchRange;
 		this.ts = ts;
+		readIdx = idx instanceof IVFSq8DirectIndex;
 	}
 
 	/**
@@ -72,7 +75,8 @@ public class IndexSelectScan implements UpdateScan {
 		boolean ok = idx.next();
 		if (ok) {
 			RecordId rid = idx.getDataRecordId();
-			ts.moveToRecordId(rid);
+			if (!readIdx)
+				ts.moveToRecordId(rid);
 		}
 		return ok;
 	}
@@ -95,6 +99,7 @@ public class IndexSelectScan implements UpdateScan {
 	 */
 	@Override
 	public Constant getVal(String fldName) {
+		if (readIdx) return ((IVFSq8DirectIndex)idx).getVal(fldName);
 		return ts.getVal(fldName);
 	}
 
@@ -105,31 +110,37 @@ public class IndexSelectScan implements UpdateScan {
 	 */
 	@Override
 	public boolean hasField(String fldName) {
+		if (readIdx) throw new UnsupportedOperationException();
 		return ts.hasField(fldName);
 	}
 
 	@Override
 	public void setVal(String fldName, Constant val) {
+		if (readIdx) throw new UnsupportedOperationException();
 		ts.setVal(fldName, val);
 	}
 
 	@Override
 	public void delete() {
+		if (readIdx) throw new UnsupportedOperationException();
 		ts.delete();
 	}
 
 	@Override
 	public void insert() {
+		if (readIdx) throw new UnsupportedOperationException();
 		ts.insert();
 	}
 
 	@Override
 	public RecordId getRecordId() {
+		if (readIdx) return ((IVFSq8DirectIndex)idx).getDataRecordId();
 		return ts.getRecordId();
 	}
 
 	@Override
 	public void moveToRecordId(RecordId rid) {
+		if (readIdx) throw new UnsupportedOperationException();
 		ts.moveToRecordId(rid);
 	}
 }

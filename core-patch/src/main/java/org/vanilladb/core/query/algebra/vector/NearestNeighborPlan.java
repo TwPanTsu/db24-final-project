@@ -1,7 +1,7 @@
 package org.vanilladb.core.query.algebra.vector;
 
 import org.vanilladb.core.query.algebra.Plan;
-import org.vanilladb.core.query.algebra.materialize.SortPlan;
+import org.vanilladb.core.query.algebra.materialize.InsertionSortPlan;
 import org.vanilladb.core.query.algebra.Scan;
 import org.vanilladb.core.sql.distfn.DistanceFn;
 import org.vanilladb.core.sql.Schema;
@@ -11,8 +11,8 @@ import org.vanilladb.core.storage.tx.Transaction;
 public class NearestNeighborPlan implements Plan {
     private Plan child;
 
-    public NearestNeighborPlan(Plan p, DistanceFn distFn, Transaction tx) {
-        this.child = new SortPlan(p, distFn, tx);
+    public NearestNeighborPlan(Plan p, DistanceFn distFn, int limit, Transaction tx) {
+        this.child = new InsertionSortPlan(p, distFn, limit, tx);
     }
 
     @Override
