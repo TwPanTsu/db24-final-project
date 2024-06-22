@@ -29,7 +29,7 @@ public class IvfflatIndexTrainer {
     private Constant MAX_VECTOR_CONSTANT;
 
     private long startTime = System.currentTimeMillis();
-    private final long timeLimit = 60000 * 15 ; // Training time limit
+    private final long timeLimit = 20000 ; // Training time limit
     private final double sampleRate = 0.5;
     private final int clusterMin = 20;
 
