@@ -131,8 +131,14 @@ public class VanillaBench {
 					AnnRte annRte = ((AnnRte) rte);
 					annRte.executeCalculateRecall(newConn);
 				} else {
-					SiftRte siftRte = ((SiftRte) rte);
-					siftRte.executeCalculateRecall(newConn);
+					try {
+						SiftRte siftRte = ((SiftRte) rte);
+						siftRte.executeCalculateRecall(newConn);
+					}
+					catch (Exception e){
+						e.printStackTrace();
+						statMgr.outputReport();
+					}
 				}
 				
 			}
