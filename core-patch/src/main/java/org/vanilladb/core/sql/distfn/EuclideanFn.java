@@ -21,6 +21,7 @@ public class EuclideanFn extends DistanceFn {
         }
         return Math.sqrt(sum);
     }*/
+    private static VectorSpecies<Double> SPECIES = DoubleVector.SPECIES_PREFERRED;
     @Override
     protected double calculateDistance(VectorConstant vec) {    // Final (SIMD).
         double[] vec_d = floatToDoubleArray(vec.asJavaVal());
